@@ -16,7 +16,6 @@
 
 package matryoshka.patterns
 
-import slamdata.Predef._
 import matryoshka._
 
 import monocle.Iso
@@ -43,12 +42,12 @@ object AndMaybe extends AndMaybeInstances {
       case Only(h)      => EnvT((h, none))
     } (envt => envt.lower.fold[AndMaybe[A, B]](Only(envt.ask))(Indeed(envt.ask, _)))
 
-  def find[A](p: A => Boolean): Algebra[AndMaybe[A, ?], Option[A]] =
+  def find[A](p: A => Boolean): Algebra[AndMaybe[A, *], Option[A]] =
     l => if (p(l.head)) some(l.head) else l.tailOption.join
 }
 
 sealed abstract class AndMaybeInstances {
-  implicit def traverse[A]: Traverse[AndMaybe[A, ?]] =
+  implicit def traverse[A]: Traverse[AndMaybe[A, *]] =
     bitraverse.rightTraverse[A]
 
   implicit val bitraverse: Bitraverse[AndMaybe] =
@@ -63,8 +62,8 @@ sealed abstract class AndMaybeInstances {
         }
     }
 
-  implicit def equal[A: Equal]: Delay[Equal, AndMaybe[A, ?]] =
-    new Delay[Equal, AndMaybe[A, ?]] {
+  implicit def equal[A: Equal]: Delay[Equal, AndMaybe[A, *]] =
+    new Delay[Equal, AndMaybe[A, *]] {
       def apply[B](eql: Equal[B]) = {
         implicit val eqlB: Equal[B] = eql
         Equal.equalBy {
@@ -74,8 +73,8 @@ sealed abstract class AndMaybeInstances {
       }
     }
 
-  implicit def show[A: Show]: Delay[Show, AndMaybe[A, ?]] =
-    new Delay[Show, AndMaybe[A, ?]] {
+  implicit def show[A: Show]: Delay[Show, AndMaybe[A, *]] =
+    new Delay[Show, AndMaybe[A, *]] {
       def apply[B](show: Show[B]) =
         Show.show {
           case Indeed(a, b) => a.show ++ Cord("::") ++ show.show(b)

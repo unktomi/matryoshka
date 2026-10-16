@@ -16,7 +16,6 @@
 
 package matryoshka
 
-import slamdata.Predef._
 import matryoshka.implicits._
 
 import scalaz._
@@ -27,7 +26,7 @@ import scalaz._
   * NB: This extractor is irrufutable and doesn’t break exhaustiveness checking.
   */
 object Embed {
-  def unapply[T, F[_]](obj: T)(implicit T: Recursive.Aux[T, F], F: Functor[F])
-      : Some[F[T]] =
-    Some(obj.project)
+  def unapply[T](obj: T)(using T: Recursive[T])(using F: Functor[T.Base])
+      : Some[T.Base[T]] =
+    Some(T.project(obj))
 }

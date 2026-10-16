@@ -16,7 +16,8 @@
 
 package matryoshka
 
-import slamdata.Predef._
+import matryoshka._
+
 import matryoshka.data._
 import matryoshka.exp._
 import matryoshka.exp2._
@@ -31,7 +32,7 @@ import matryoshka.scalacheck.cogen._
 import org.scalacheck._
 import org.specs2.ScalaCheck
 import org.specs2.mutable._
-import org.specs2.scalaz.{ScalazMatchers}
+import matryoshka.helpers.ScalazMatchers
 import org.typelevel.discipline.specs2.mutable._
 import scalaz.{Apply => _, _}, Scalaz._
 import scalaz.scalacheck.ScalazProperties._
@@ -64,25 +65,31 @@ class MatryoshkaSpecs extends Specification with ScalaCheck with ScalazMatchers 
     case Let(_, _, i)     => i
   }
 
-  val addOneOptƒ = λ[Exp ~> (Option ∘ Exp)#λ] {
+  val addOneOptƒ = new (Exp ~> (Option ∘ Exp)#λ) {
+    def apply[A](value: Exp[A]): Option[Exp[A]] = value match {
     case Num(n) => Num(n+1).some
     case _      => None
+    }
   }
 
   def addOneƒ[T]: Exp[T] => Exp[T] =
     orOriginal(addOneOptƒ(_))
 
-  val addOneOptExpExp2ƒ = λ[Exp ~> (Option ∘ Exp2)#λ] {
+  val addOneOptExpExp2ƒ = new (Exp ~> (Option ∘ Exp2)#λ) {
+    def apply[A](value: Exp[A]): Option[Exp2[A]] = value match {
     case Num(n) => Num2(n+1).some
     case _      => None
+    }
   }
 
   def addOneExpExp2ƒ[T]: Exp[T] => Exp2[T] =
     orDefault[Exp[T], Exp2[T]](exp2.Const())(addOneOptExpExp2ƒ(_))
 
-  def addOneOptExp2Expƒ = λ[Exp2 ~> (Option ∘ Exp)#λ] {
+  def addOneOptExp2Expƒ = new (Exp2 ~> (Option ∘ Exp)#λ) {
+    def apply[A](value: Exp2[A]): Option[Exp[A]] = value match {
     case Num2(n) => Num(n+1).some
     case _       => None
+    }
   }
 
   def addOneExp2Expƒ[T]: Exp2[T] => Exp[T] =
@@ -112,7 +119,7 @@ class MatryoshkaSpecs extends Specification with ScalaCheck with ScalazMatchers 
       case Num(a) => Num2(a)
       case _      => Single(exp2)
     }
-    case _                      => exp2.Const[T[Exp2]]
+    case _                      => exp2.Const[T[Exp2]]()
   }
 
   val MinusThree: Exp ~> Exp =
@@ -131,9 +138,9 @@ class MatryoshkaSpecs extends Specification with ScalaCheck with ScalazMatchers 
     t match {
       case Mul(x, y) => (x.head.project, y.head.project) match {
         case (Num(a), Num(b)) => Num[T](a * b).embed
-        case _                => t.map(_.head).embed
+        case _                => Functor[Exp].map(t)(_.head).embed
       }
-      case _ => t.map(_.head).embed
+      case _ => Functor[Exp].map(t)(_.head).embed
     }
 
   checkAlgebraIsoLaws("birec", Birecursive.iso[Mu[Exp], Exp])
@@ -156,9 +163,9 @@ class MatryoshkaSpecs extends Specification with ScalaCheck with ScalazMatchers 
 
     "children" >> {
       "be empty for simple literal" in {
-        num(1).children[List[Fix[Exp]]] must be empty;
-        num(1).convertTo[Mu[Exp]].children[List[Mu[Exp]]] must be empty;
-        num(1).convertTo[Nu[Exp]].children[List[Nu[Exp]]] must be empty
+        num(1).children[List[Fix[Exp]]] must beEmpty;
+        num(1).convertTo[Mu[Exp]].children[List[Mu[Exp]]] must beEmpty;
+        num(1).convertTo[Nu[Exp]].children[List[Nu[Exp]]] must beEmpty
       }
 
       "contain sub-expressions" in {
@@ -220,7 +227,7 @@ class MatryoshkaSpecs extends Specification with ScalaCheck with ScalazMatchers 
           num(1),
           new CorecRunner[Id, Exp, Fix[Exp]] {
             def run[T: Equal: Show](implicit T: Birecursive.Aux[T, Exp]) =
-              _.transAna[T](addOneƒ) must equal(num(2).convertTo[T])
+              _.transAna[T](addOneƒ[Fix[Exp]]) must equal(num(2).convertTo[T])
           })
       }
 
@@ -229,7 +236,7 @@ class MatryoshkaSpecs extends Specification with ScalaCheck with ScalazMatchers 
           mul(num(1), num(2)),
           new CorecRunner[Id, Exp, Fix[Exp]] {
             def run[T: Equal: Show](implicit T: Birecursive.Aux[T, Exp]) =
-              _.transAna[T](addOneƒ) must equal(mul(num(2), num(3)).convertTo[T])
+              _.transAna[T](addOneƒ[Fix[Exp]]) must equal(mul(num(2), num(3)).convertTo[T])
           })
       }
 
@@ -254,17 +261,17 @@ class MatryoshkaSpecs extends Specification with ScalaCheck with ScalazMatchers 
 
     "gprepro" >> {
       "multiply original with identity ~>" in {
-        lam('meh, mul(vari('meh), mul(num(10), num(8))))
-          .gprepro[Cofree[Exp, ?], Fix[Exp]](
+        lam(Symbol("meh"), mul(vari(Symbol("meh")), mul(num(10), num(8))))
+          .gprepro[Cofree[Exp, *], Fix[Exp]](
             distHisto, NaturalTransformation.refl[Exp], partialEval[Fix[Exp]]) must
-          equal(lam('meh, mul(vari('meh), num(80))))
+          equal(lam(Symbol("meh"), mul(vari(Symbol("meh")), num(80))))
       }
 
       "apply ~> repeatedly" in {
-        lam('meh, mul(vari('meh), mul(num(13), num(8))))
-          .gprepro[Cofree[Exp, ?], Fix[Exp]](
+        lam(Symbol("meh"), mul(vari(Symbol("meh")), mul(num(13), num(8))))
+          .gprepro[Cofree[Exp, *], Fix[Exp]](
             distHisto, MinusThree, partialEval[Fix[Exp]]) must
-          equal(lam('meh, mul(vari('meh), num(-4))))
+          equal(lam(Symbol("meh"), mul(vari(Symbol("meh")), num(-4))))
       }
     }
 
@@ -274,7 +281,7 @@ class MatryoshkaSpecs extends Specification with ScalaCheck with ScalazMatchers 
           num(1),
           new BirecRunner[Exp, Fix[Exp]] {
             def run[T](implicit T: Birecursive.Aux[T, Exp]) =
-              _.transPrepro[Fix[Exp]](NaturalTransformation.refl, addOneƒ) must
+              _.transPrepro[Fix[Exp]](NaturalTransformation.refl[Exp], addOneƒ[Fix[Exp]]) must
                 equal(num(2))
           })
       }
@@ -284,7 +291,7 @@ class MatryoshkaSpecs extends Specification with ScalaCheck with ScalazMatchers 
           mul(num(1), mul(num(12), num(8))),
           new BirecRunner[Exp, Fix[Exp]] {
             def run[T](implicit T: Birecursive.Aux[T, Exp]) =
-              _.transPrepro[Fix[Exp]](MinusThree, addOneƒ) must
+              _.transPrepro[Fix[Exp]](MinusThree, addOneƒ[Fix[Exp]]) must
                 equal(mul(num(-1), mul(num(7), num(3))))
           })
       }
@@ -305,7 +312,7 @@ class MatryoshkaSpecs extends Specification with ScalaCheck with ScalazMatchers 
           num(1),
           new CorecRunner[Id, Exp, Fix[Exp]] {
             def run[T: Equal: Show](implicit T: Birecursive.Aux[T, Exp]) =
-              _.transPostpro[T](NaturalTransformation.refl, addOneƒ) must
+              _.transPostpro[T](NaturalTransformation.refl[Exp], addOneƒ[Fix[Exp]]) must
                 equal(num(2).convertTo[T])
           })
       }
@@ -315,7 +322,7 @@ class MatryoshkaSpecs extends Specification with ScalaCheck with ScalazMatchers 
           mul(num(1), mul(num(12), num(8))),
           new CorecRunner[Id, Exp, Fix[Exp]] {
             def run[T: Equal: Show](implicit T: Birecursive.Aux[T, Exp]) =
-              _.transPostpro[T](MinusThree, addOneƒ) must
+              _.transPostpro[T](MinusThree, addOneƒ[Fix[Exp]]) must
                 equal(mul(num(-1), mul(num(7), num(3))).convertTo[T])
           })
       }
@@ -325,7 +332,7 @@ class MatryoshkaSpecs extends Specification with ScalaCheck with ScalazMatchers 
           num2(1),
           new CorecRunner[Id, Exp, Fix[Exp2]] {
             def run[T: Equal: Show](implicit T: Birecursive.Aux[T, Exp]) =
-              _.transPostpro[T](MinusThree, addOneExp2Expƒ) must
+              _.transPostpro[T](MinusThree, addOneExp2Expƒ[Fix[Exp2]]) must
                 equal(num(2).convertTo[T])
           })
       }
@@ -333,11 +340,11 @@ class MatryoshkaSpecs extends Specification with ScalaCheck with ScalazMatchers 
 
     "transPara" >> {
       "project basic exp" in {
-        lam('sym, num(3)).transPara[Fix[Exp2]](extractLambdaƒ[Fix]) must equal(num2(3))
+        lam(Symbol("sym"), num(3)).transPara[Fix[Exp2]](extractLambdaƒ[Fix]) must equal(num2(3))
       }
 
       "project basic exp recursively" in {
-        lam('sym, mul(num(5), num(7))).transPara[Fix[Exp2]](extractLambdaƒ[Fix]) must
+        lam(Symbol("sym"), mul(num(5), num(7))).transPara[Fix[Exp2]](extractLambdaƒ[Fix]) must
           equal(single(const))
       }
     }
@@ -400,34 +407,34 @@ class MatryoshkaSpecs extends Specification with ScalaCheck with ScalazMatchers 
           mul(num(1), mul(num(2), num(3))),
           new RecRunner[Exp, Int] {
             def run[T](implicit T: Recursive.Aux[T, Exp]) = t =>
-              t.para(eval.generalize[(T, ?)]) must equal(t.cata(eval))
+              t.para(eval.generalize[(T, *)]) must equal(t.cata(eval))
           })
       }
     }
 
     "coelgot" >> {
       "behave like cofCata ⋘ attributeAna" >> prop { (i: Int) =>
-        i.coelgot(eval.generalizeElgot[(Int, ?)], extractFactors) must equal(
-          i.ana[Cofree[Exp, Int]](attributeCoalgebra(extractFactors)).cata(liftT(eval.generalizeElgot[(Int, ?)])))
+        i.coelgot(eval.generalizeElgot[(Int, *)], extractFactors) must equal(
+          i.ana[Cofree[Exp, Int]](attributeCoalgebra(extractFactors)).cata(liftT(eval.generalizeElgot[(Int, *)])))
       }
     }
 
     "elgot" >> {
       "behave like interpCata ⋘ freeAna" >> prop { (i: Int) =>
-        i.elgot(eval, extractFactors.generalizeElgot[Int \/ ?]) must equal(
-          i.ana[Free[Exp, Int]](runT(extractFactors.generalizeElgot[Int \/ ?])).cata(patterns.recover(eval)))
+        i.elgot(eval, extractFactors.generalizeElgot[\/[Int, *]]) must equal(
+          i.ana[Free[Exp, Int]](runT(extractFactors.generalizeElgot[\/[Int, *]])).cata(patterns.recover(eval)))
       }
     }
 
     "generalizeElgot" >> {
       "behave like cata on an algebra" ! prop { (i: Int) =>
         val x = i.ana[Fix[Exp]](extractFactors).cata(eval)
-        i.coelgot(eval.generalizeElgot[(Int, ?)], extractFactors) must equal(x)
+        i.coelgot(eval.generalizeElgot[(Int, *)], extractFactors) must equal(x)
       }
 
       "behave like ana on an coalgebra" ! prop { (i: Int) =>
         val x = i.ana[Fix[Exp]](extractFactors).cata(eval)
-        i.elgot(eval, extractFactors.generalizeElgot[Int \/ ?]) must equal(x)
+        i.elgot(eval, extractFactors.generalizeElgot[\/[Int, *]]) must equal(x)
       }
     }
 
@@ -442,13 +449,13 @@ class MatryoshkaSpecs extends Specification with ScalaCheck with ScalazMatchers 
       case t         => t.fold
     }
 
-    val freeVarsNumber: ElgotAlgebra[(List[Symbol], ?), Exp, Int] = {
+    val freeVarsNumber: ElgotAlgebra[(List[Symbol], *), Exp, Int] = {
       case (vars, _) => vars.size
     }
 
     val generateVars: Int => Exp[Int] = n => Var(Symbol("x" + ((n * 13) % n)))
 
-    val generateTerm: ElgotCoalgebra[Int \/ ?, Exp, (Int, Int)] = {
+    val generateTerm: ElgotCoalgebra[\/[Int, *], Exp, (Int, Int)] = {
       case (n, 0)     if n <= 0      => Num(42).right
       case (n, bound) if n <= 0      => bound.left
       case (n, bound) if (n % 2) ≟ 0 => Lambda(Symbol("x" + bound), (n - 1, bound + 1)).right
@@ -458,13 +465,13 @@ class MatryoshkaSpecs extends Specification with ScalaCheck with ScalazMatchers 
     "elgotCata" >> {
 
       "find no free vars in closed term" in {
-        val t = lam('sym, mul(num(5), vari('sym)))
+        val t = lam(Symbol("sym"), mul(num(5), vari(Symbol("sym"))))
         t.elgotCata(distZygo(freeVars), freeVarsNumber) must equal(0)
       }
 
       "find some free vars in open term" in {
-        val t1 = lam('bound, mul(vari('open), vari('bound)))
-        val t2 = lam('x, mul(vari('y), lam('y, mul(vari('open), mul(vari('y), vari('x))))))
+        val t1 = lam(Symbol("bound"), mul(vari(Symbol("open")), vari(Symbol("bound"))))
+        val t2 = lam(Symbol("x"), mul(vari(Symbol("y")), lam(Symbol("y"), mul(vari(Symbol("open")), mul(vari(Symbol("y")), vari(Symbol("x")))))))
         t1.elgotCata(distZygo(freeVars), freeVarsNumber) must equal(1)
         t2.elgotCata(distZygo(freeVars), freeVarsNumber) must equal(2)
       }
@@ -477,16 +484,16 @@ class MatryoshkaSpecs extends Specification with ScalaCheck with ScalazMatchers 
         )
 
         (4, 0).elgotAna[Fix[Exp]].apply(distGApo(generateVars), generateTerm) must equal (
-          lam('x0, mul(mul(vari('x0), vari('x0)), vari('x0)))
+          lam(Symbol("x0"), mul(mul(vari(Symbol("x0")), vari(Symbol("x0"))), vari(Symbol("x0"))))
         )
 
         (5, 0).elgotAna[Fix[Exp]].apply(distGApo(generateVars), generateTerm) must equal (
-          mul(lam('x0, mul(vari('x0), vari('x0))), mul(num(42), num(42)))
+          mul(lam(Symbol("x0"), mul(vari(Symbol("x0")), vari(Symbol("x0")))), mul(num(42), num(42)))
         )
       }
       "generate open terms" in {
         (3, 1).elgotAna[Fix[Exp]].apply(distGApo(generateVars), generateTerm) must equal (
-          mul(mul(vari('x0), vari('x0)), vari('x0))
+          mul(mul(vari(Symbol("x0")), vari(Symbol("x0"))), vari(Symbol("x0")))
         )
       }
     }
@@ -507,11 +514,11 @@ class MatryoshkaSpecs extends Specification with ScalaCheck with ScalazMatchers 
 
     "generalizeCoalgebra" >> {
       "behave like ana" ! prop { (i: Int) =>
-        i.apo[Fix[Exp]](extractFactors.generalize[Fix[Exp] \/ ?]) must
+        i.apo[Fix[Exp]](extractFactors.generalize[\/[Fix[Exp], *]]) must
           equal(i.ana[Fix[Exp]](extractFactors))
-        i.apo[Mu[Exp]](extractFactors.generalize[Mu[Exp] \/ ?]) must
+        i.apo[Mu[Exp]](extractFactors.generalize[\/[Mu[Exp], *]]) must
           equal(i.ana[Mu[Exp]](extractFactors))
-        i.apo[Nu[Exp]](extractFactors.generalize[Nu[Exp] \/ ?]) must
+        i.apo[Nu[Exp]](extractFactors.generalize[\/[Nu[Exp], *]]) must
           equal(i.ana[Nu[Exp]](extractFactors))
       }
     }
@@ -527,7 +534,7 @@ class MatryoshkaSpecs extends Specification with ScalaCheck with ScalazMatchers 
       }
 
       "bind vars" in {
-        val v = let('x, num(1), mul(num(0), vari('x)))
+        val v = let(Symbol("x"), num(1), mul(num(0), vari(Symbol("x"))))
         v.topDownCata(Map.empty[Symbol, Fix[Exp]])(subst) must
           equal(mul(num(0), num(1)))
         v.convertTo[Mu[Exp]].topDownCata(Map.empty[Symbol, Mu[Exp]])(subst) must
@@ -559,7 +566,7 @@ class MatryoshkaSpecs extends Specification with ScalaCheck with ScalazMatchers 
       }
     }
 
-    val weightedEval: ElgotAlgebraM[(Int, ?), Option, Exp, Int] = {
+    val weightedEval: ElgotAlgebraM[(Int, *), Option, Exp, Int] = {
       case (weight, Num(x))    => (weight * x).some
       case (weight, Mul(x, y)) => (weight * x * y).some
       case (_,      _)         => None
@@ -574,7 +581,7 @@ class MatryoshkaSpecs extends Specification with ScalaCheck with ScalazMatchers 
           Cofree(2, Mul(
             Cofree(3, Num(2)),
             Cofree(3, Num(3))))))
-          .transCataM(((_: EnvT[Int, Exp, T]).run) >>> attributeElgotM[(Int, ?), Option, T](weightedEval)) must
+          .transCataM(((_: EnvT[Int, Exp, T]).run) >>> attributeElgotM[(Int, *), Option, T](weightedEval)) must
           equal(
             Cofree[Exp, Int](216, Mul(
               Cofree(2, Num(1)),
@@ -639,8 +646,8 @@ class MatryoshkaSpecs extends Specification with ScalaCheck with ScalazMatchers 
 
       "increase toward leaves, ltr" in {
         val v = mul(num(0), mul(num(0), num(1)))
-        v.attributeTopDownM[State[Int, ?], Cofree[Exp, Int], Int](0)(sequential).eval(0) must
-          equal(
+        v.attributeTopDownM[State[Int, *], Cofree[Exp, Int], Int](0)(sequential).eval(0) must
+          equal[Cofree[Exp, Int]](
             Cofree[Exp, Int](0, Mul(
               Cofree(1, Num(0)),
               Cofree(2, Mul(
@@ -661,9 +668,9 @@ class MatryoshkaSpecs extends Specification with ScalaCheck with ScalazMatchers 
     "distPara" >> {
       "behave like para" in {
         val v = mul(num(0), mul(num(0), num(1)))
-        v.gcata[(Fix[Exp], ?), Int](distPara, peval[Fix[Exp]]) must equal(v.para(peval[Fix[Exp]]))
-        v.convertTo[Mu[Exp]].gcata[(Mu[Exp], ?), Int](distPara, peval[Mu[Exp]]) must equal(v.convertTo[Mu[Exp]].para(peval[Mu[Exp]]))
-        v.convertTo[Nu[Exp]].gcata[(Nu[Exp], ?), Int](distPara, peval[Nu[Exp]]) must equal(v.convertTo[Nu[Exp]].para(peval[Nu[Exp]]))
+        v.gcata[(Fix[Exp], *), Int](distPara, peval[Fix[Exp]]) must equal(v.para(peval[Fix[Exp]]))
+        v.convertTo[Mu[Exp]].gcata[(Mu[Exp], *), Int](distPara, peval[Mu[Exp]]) must equal(v.convertTo[Mu[Exp]].para(peval[Mu[Exp]]))
+        v.convertTo[Nu[Exp]].gcata[(Nu[Exp], *), Int](distPara, peval[Nu[Exp]]) must equal(v.convertTo[Nu[Exp]].para(peval[Nu[Exp]]))
       }
     }
 
@@ -701,7 +708,7 @@ class MatryoshkaSpecs extends Specification with ScalaCheck with ScalazMatchers 
             10.apoM[Fix[Exp]](extract2sNot5[Fix[Exp]]) must beNone
           }
         }
-        "apo should be an optimization over apoM and be semantically equivalent" >> prop { i: Int =>
+        "apo should be an optimization over apoM and be semantically equivalent" >> prop { (i: Int) =>
           if (i == 0) ok
           else
             i.apoM[Fix[Exp]].apply[Id, Exp](extract2s) must
@@ -744,7 +751,7 @@ class MatryoshkaSpecs extends Specification with ScalaCheck with ScalazMatchers 
               })
           }
         }
-        "ana should be an optimization over anaM and be semantically equivalent" >> prop { i: Int =>
+        "ana should be an optimization over anaM and be semantically equivalent" >> prop { (i: Int) =>
           testCorec(
             i,
             new CorecRunner[Id, Exp, Int] {
@@ -806,13 +813,13 @@ class MatryoshkaSpecs extends Specification with ScalaCheck with ScalazMatchers 
 
     "ghylo" >> {
       "behave like hylo with distCata/distAna" ! prop { (i: Int) =>
-        i.ghylo[Id, Id](distCata, distAna, eval, extractFactors) must
+        i.ghylo[Id, Id].apply[Exp, Int](distCata, distAna, eval, extractFactors) must
           equal(i.hylo(eval, extractFactors))
       }
 
       "behave like chrono with distHisto/distFutu" ! prop { (i: Int) =>
-        i.ghylo[Cofree[Exp, ?], Free[Exp, ?]](
-          distHisto, distFutu, partialEval[Fix[Exp]], extract2and3) must
+        i.ghylo[Cofree[Exp, *], Free[Exp, *]](
+          distHisto[Exp], distFutu[Exp], partialEval[Fix[Exp]], extract2and3) must
           equal(i.chrono(partialEval[Fix[Exp]], extract2and3))
       }
     }
@@ -882,12 +889,12 @@ class MatryoshkaSpecs extends Specification with ScalaCheck with ScalazMatchers 
       }
 
       "partially evaluate mul in lambda" in {
-        lam('foo, mul(mul(num(4), num(7)), vari('foo))).histo(partialEval[Fix[Exp]]) must
-          equal(lam('foo, mul(num(28), vari('foo))))
-        lam('foo, mul(mul(num(4), num(7)), vari('foo))).histo(partialEval[Mu[Exp]]) must
-          equal(lam('foo, mul(num(28), vari('foo))).convertTo[Mu[Exp]])
-        lam('foo, mul(mul(num(4), num(7)), vari('foo))).histo(partialEval[Nu[Exp]]) must
-          equal(lam('foo, mul(num(28), vari('foo))).convertTo[Nu[Exp]])
+        lam(Symbol("foo"), mul(mul(num(4), num(7)), vari(Symbol("foo")))).histo(partialEval[Fix[Exp]]) must
+          equal(lam(Symbol("foo"), mul(num(28), vari(Symbol("foo")))))
+        lam(Symbol("foo"), mul(mul(num(4), num(7)), vari(Symbol("foo")))).histo(partialEval[Mu[Exp]]) must
+          equal(lam(Symbol("foo"), mul(num(28), vari(Symbol("foo")))).convertTo[Mu[Exp]])
+        lam(Symbol("foo"), mul(mul(num(4), num(7)), vari(Symbol("foo")))).histo(partialEval[Nu[Exp]]) must
+          equal(lam(Symbol("foo"), mul(num(28), vari(Symbol("foo")))).convertTo[Nu[Exp]])
       }
     }
 
@@ -921,7 +928,7 @@ class MatryoshkaSpecs extends Specification with ScalaCheck with ScalazMatchers 
 
     "gpostpro" >> {
       "extract original with identity ~>" in {
-        72.gpostpro[Fix[Exp]](distFutu[Exp], NaturalTransformation.refl, extract2and3) must
+        72.gpostpro[Fix[Exp]](distFutu[Exp], NaturalTransformation.refl[Exp], extract2and3) must
           equal(mul(num(2), mul(num(2), mul(num(2), mul(num(3), num(3))))))
       }
 
@@ -989,7 +996,7 @@ class MatryoshkaSpecs extends Specification with ScalaCheck with ScalazMatchers 
 
     "holesList" >> {
       "find none" in {
-        holesList[Exp, Unit](Num(0)) must be empty
+        holesList[Exp, Unit](Num(0)) must beEmpty
       }
 
       "find and replace two children" in {
@@ -1025,25 +1032,25 @@ class MatryoshkaSpecs extends Specification with ScalaCheck with ScalazMatchers 
 
     "attrSelf" >> {
       "annotate all" >> Prop.forAll(expGen) { exp =>
-        exp.transCata[T[Mu[Exp]]](attrSelf[T[Mu[Exp]]].apply).elgotPara(universe) must
-          equal(exp.elgotPara(universe).map(_.transCata[T[Mu[Exp]]](attrSelf[T[Mu[Exp]]].apply)))
+        exp.transCata[T[Mu[Exp]]](attrSelf[T[Mu[Exp]]].apply[Mu[Exp], Exp]).elgotPara(universe) must
+          equal(exp.elgotPara(universe).map(_.transCata[T[Mu[Exp]]](attrSelf[T[Mu[Exp]]].apply[Mu[Exp], Exp])))
       }
     }
 
     "convert" >> {
       "forget unit" >> Prop.forAll(expGen) { exp =>
-        exp.transCata[T[Unit]](attrK[T[Unit]](())).cata(deattribute[Exp, Unit, Mu[Exp]](_.embed)) must equal(exp)
+        exp.transCata[T[Unit]](attrK[T[Unit]].apply[Exp, Unit](())).cata(deattribute[Exp, Unit, Mu[Exp]](_.embed)) must equal(exp)
       }
     }
 
     "foldMap" >> {
       "zeros" >> Prop.forAll(expGen) { exp =>
-        Foldable[Cofree[Exp, ?]].foldMap(exp.transCata[T[Int]](attrK[T[Int]](0)))(_ :: Nil) must
+        Foldable[Cofree[Exp, *]].foldMap(exp.transCata[T[Int]](attrK[T[Int]].apply[Exp, Int](0)))(_ :: Nil) must
           equal(exp.elgotPara(universe).map(Function.const(0)).toList)
       }
 
       "selves" >> Prop.forAll(expGen) { exp =>
-        Foldable[Cofree[Exp, ?]].foldMap(exp.transCata[T[Mu[Exp]]](attrSelf[T[Mu[Exp]]].apply))(_ :: Nil) must
+        Foldable[Cofree[Exp, *]].foldMap(exp.transCata[T[Mu[Exp]]](attrSelf[T[Mu[Exp]]].apply[Mu[Exp], Exp]))(_ :: Nil) must
           equal(exp.elgotPara(universe).toList)
       }
     }
@@ -1118,15 +1125,15 @@ class MatryoshkaSpecs extends Specification with ScalaCheck with ScalazMatchers 
   "recover" should {
     "handle “partially-folded” values" in {
       val exp =
-        CoEnv[Int, Exp, Fix[CoEnv[Int, Exp, ?]]](\/-(Mul(
-          CoEnv[Int, Exp, Fix[CoEnv[Int, Exp, ?]]](\/-(Mul(
-            CoEnv(2.left[Exp[Fix[CoEnv[Int, Exp, ?]]]]).embed,
-            CoEnv[Int, Exp, Fix[CoEnv[Int, Exp, ?]]](\/-(Mul(
-              CoEnv[Int, Exp, Fix[CoEnv[Int, Exp, ?]]](Num(3).right[Int]).embed,
-              CoEnv(4.left[Exp[Fix[CoEnv[Int, Exp, ?]]]]).embed))).embed))).embed,
-          CoEnv[Int, Exp, Fix[CoEnv[Int, Exp, ?]]](\/-(Mul(
-            CoEnv[Int, Exp, Fix[CoEnv[Int, Exp, ?]]](Num(5).right[Int]).embed,
-            CoEnv(6.left[Exp[Fix[CoEnv[Int, Exp, ?]]]]).embed))).embed))).embed
+        CoEnv[Int, Exp, Fix[CoEnv[Int, Exp, *]]](\/-(Mul(
+          CoEnv[Int, Exp, Fix[CoEnv[Int, Exp, *]]](\/-(Mul(
+            CoEnv(2.left[Exp[Fix[CoEnv[Int, Exp, *]]]]).embed,
+            CoEnv[Int, Exp, Fix[CoEnv[Int, Exp, *]]](\/-(Mul(
+              CoEnv[Int, Exp, Fix[CoEnv[Int, Exp, *]]](Num(3).right[Int]).embed,
+              CoEnv(4.left[Exp[Fix[CoEnv[Int, Exp, *]]]]).embed))).embed))).embed,
+          CoEnv[Int, Exp, Fix[CoEnv[Int, Exp, *]]](\/-(Mul(
+            CoEnv[Int, Exp, Fix[CoEnv[Int, Exp, *]]](Num(5).right[Int]).embed,
+            CoEnv(6.left[Exp[Fix[CoEnv[Int, Exp, *]]]]).embed))).embed))).embed
       exp.cata(recover(eval)) must equal(720)
     }
   }

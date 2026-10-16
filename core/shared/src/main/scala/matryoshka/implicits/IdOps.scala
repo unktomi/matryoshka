@@ -50,31 +50,31 @@ sealed class IdOps[A](self: A) {
       M[B] =
     matryoshka.ghyloM(self)(w, n, f, g)
 
-  def dyna[F[_]: Functor, B](φ: GAlgebra[Cofree[F, ?], F, B], ψ: Coalgebra[F, A]): B =
+  def dyna[F[_]: Functor, B](φ: GAlgebra[Cofree[F, *], F, B], ψ: Coalgebra[F, A]): B =
     matryoshka.dyna(self)(φ, ψ)
 
-  def codyna[F[_]: Functor, B](φ: Algebra[F, B], ψ: GCoalgebra[Free[F, ?], F, A]): B =
+  def codyna[F[_]: Functor, B](φ: Algebra[F, B], ψ: GCoalgebra[Free[F, *], F, A]): B =
     matryoshka.codyna(self)(φ, ψ)
 
-  def codynaM[M[_]: Monad, F[_]: Traverse, B](φ: AlgebraM[M, F, B], ψ: GCoalgebraM[Free[F, ?], M, F, A]): M[B] =
+  def codynaM[M[_]: Monad, F[_]: Traverse, B](φ: AlgebraM[M, F, B], ψ: GCoalgebraM[Free[F, *], M, F, A]): M[B] =
     matryoshka.codynaM(self)(φ, ψ)
 
   def chrono[F[_]: Functor, B](
-    g: GAlgebra[Cofree[F, ?], F, B], f: GCoalgebra[Free[F, ?], F, A]):
+    g: GAlgebra[Cofree[F, *], F, B], f: GCoalgebra[Free[F, *], F, A]):
       B =
     matryoshka.chrono(self)(g, f)
 
-  def elgot[F[_]: Functor, B](φ: Algebra[F, B], ψ: ElgotCoalgebra[B \/ ?, F, A]): B =
+  def elgot[F[_]: Functor, B](φ: Algebra[F, B], ψ: ElgotCoalgebra[\/[B, *], F, A]): B =
     matryoshka.elgot(self)(φ, ψ)
 
-  def coelgot[F[_]: Functor, B](φ: ElgotAlgebra[(A, ?), F, B], ψ: Coalgebra[F, A]): B =
+  def coelgot[F[_]: Functor, B](φ: ElgotAlgebra[(A, *), F, B], ψ: Coalgebra[F, A]): B =
     matryoshka.coelgot(self)(φ, ψ)
 
   object coelgotM {
     def apply[M[_]]: PartiallyApplied[M] = new PartiallyApplied[M]
 
     final class PartiallyApplied[M[_]] {
-      def apply[F[_]: Traverse, B](φ: ElgotAlgebraM[(A, ?), M, F, B], ψ: CoalgebraM[M, F, A])(implicit M: Monad[M]):
+      def apply[F[_]: Traverse, B](φ: ElgotAlgebraM[(A, *), M, F, B], ψ: CoalgebraM[M, F, A])(implicit M: Monad[M]):
           M[B] =
         matryoshka.coelgotM[M].apply[F, A, B](self)(φ, ψ)
     }
@@ -145,7 +145,7 @@ sealed class IdOps[A](self: A) {
 
     final class PartiallyApplied[T] {
       def apply[F[_]: Functor]
-        (f: GCoalgebra[T \/ ?, F, A])
+        (f: GCoalgebra[\/[T, *], F, A])
         (implicit T: Corecursive.Aux[T, F])
           : T =
         T.apo(self)(f)
@@ -157,7 +157,7 @@ sealed class IdOps[A](self: A) {
 
     final class PartiallyApplied[T] {
       def apply[M[_]: Monad, F[_]: Traverse]
-        (f: GCoalgebraM[T \/ ?, M, F, A])
+        (f: GCoalgebraM[\/[T, *], M, F, A])
         (implicit T: Corecursive.Aux[T, F])
           : M[T] =
         T.apoM(self)(f)
@@ -169,7 +169,7 @@ sealed class IdOps[A](self: A) {
 
     final class PartiallyApplied[T] {
       def apply[F[_]: Functor, B]
-        (f: Coalgebra[F, B], g: GCoalgebra[B \/ ?, F, A])
+        (f: Coalgebra[F, B], g: GCoalgebra[\/[B, *], F, A])
         (implicit T: Corecursive.Aux[T, F])
           : T =
         T.gapo(self)(f, g)
@@ -181,7 +181,7 @@ sealed class IdOps[A](self: A) {
 
     final class PartiallyApplied[T] {
       def apply[F[_]: Functor]
-        (f: ElgotCoalgebra[T \/ ?, F, A])
+        (f: ElgotCoalgebra[\/[T, *], F, A])
         (implicit T: Corecursive.Aux[T, F])
           : T =
         T.elgotApo(self)(f)
@@ -217,7 +217,7 @@ sealed class IdOps[A](self: A) {
 
     final class PartiallyApplied[T] {
       def apply[F[_]: Functor]
-        (f: GCoalgebra[Free[F, ?], F, A])
+        (f: GCoalgebra[Free[F, *], F, A])
         (implicit T: Corecursive.Aux[T, F])
           : T =
         T.futu(self)(f)
@@ -225,7 +225,7 @@ sealed class IdOps[A](self: A) {
   }
 
   def futuM[T, M[_]: Monad, F[_]: Traverse]
-    (f: GCoalgebraM[Free[F, ?], M, F, A])
+    (f: GCoalgebraM[Free[F, *], M, F, A])
     (implicit T: Corecursive.Aux[T, F])
       : M[T] =
     T.futuM(self)(f)

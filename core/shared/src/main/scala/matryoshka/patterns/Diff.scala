@@ -16,7 +16,6 @@
 
 package matryoshka.patterns
 
-import slamdata.Predef._
 import matryoshka._
 
 import scalaz._, Scalaz._
@@ -43,8 +42,8 @@ object Diff extends DiffInstances
 
 sealed abstract class DiffInstances extends DiffInstances0 {
   // TODO: implement low-prio Foldable with looser constraint on F
-  implicit def traverse[T[_[_]], F[_]: Traverse]: Traverse[Diff[T, F, ?]] =
-    new Traverse[Diff[T, F, ?]] {
+  implicit def traverse[T[_[_]], F[_]: Traverse]: Traverse[Diff[T, F, *]] =
+    new Traverse[Diff[T, F, *]] {
       def traverseImpl[G[_], A, B](
         fa: Diff[T, F, A])(
         f: A => G[B])(
@@ -64,8 +63,8 @@ sealed abstract class DiffInstances extends DiffInstances0 {
         }
     }
 
-  implicit def equal[T[_[_]], F[_]](implicit T: Equal[T[F]], F: Delay[Equal, F]): Delay[Equal, Diff[T, F, ?]] =
-    new Delay[Equal, Diff[T, F, ?]] {
+  implicit def equal[T[_[_]], F[_]](implicit T: Equal[T[F]], F: Delay[Equal, F]): Delay[Equal, Diff[T, F, *]] =
+    new Delay[Equal, Diff[T, F, *]] {
       def apply[α](eq: Equal[α]) =
         Equal.equal((a, b) => (a, b) match {
           case (Same(i1), Same(i2)) => T.equal(i1, i2)
@@ -84,8 +83,8 @@ sealed abstract class DiffInstances extends DiffInstances0 {
 
   implicit def show[T[_[_]], F[_]: Functor: Foldable](
     implicit T: Show[T[F]], F: Delay[Show, F]):
-      Delay[Show, Diff[T, F, ?]] =
-    new Delay[Show, Diff[T, F, ?]] {
+      Delay[Show, Diff[T, F, *]] =
+    new Delay[Show, Diff[T, F, *]] {
       def apply[α](s: Show[α]) = Show.show {
         case Same(_) => Cord("...")
         case Similar(x) => F(s).show(x)
@@ -100,14 +99,14 @@ sealed abstract class DiffInstances extends DiffInstances0 {
         case Added(x) => Cord("+++> ") ++ T.show(x)
         case Removed(x) => Cord("<--- ") ++ T.show(x)
         case LocallyDifferent(l, r) =>
-          F(s).show(l) ++ " <=/=> " ++ F(Show[Unit]).show(r)
+          F(s).show(l) ++ Cord(" <=/=> ") ++ F(Show[Unit]).show(r)
       }
     }
 }
 
 sealed abstract class DiffInstances0 {
-  implicit def functor[T[_[_]], F[_]: Functor]: Functor[Diff[T, F, ?]] =
-    new Functor[Diff[T, F, ?]] {
+  implicit def functor[T[_[_]], F[_]: Functor]: Functor[Diff[T, F, *]] =
+    new Functor[Diff[T, F, *]] {
       def map[A, B](fa: Diff[T, F, A])(f: A => B): Diff[T, F, B] =
         fa match {
           case Same(ident)                   => Same(ident)

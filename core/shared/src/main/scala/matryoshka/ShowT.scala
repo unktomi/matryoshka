@@ -16,13 +16,11 @@
 
 package matryoshka
 
-import slamdata.Predef._
 import matryoshka.implicits._
 
 import scalaz._
-import simulacrum._
 
-@typeclass trait ShowT[T[_[_]]] {
+trait ShowT[T[_[_]]] {
   def show[F[_]: Functor](tf: T[F])(implicit del: Delay[Show, F]): Cord =
     Cord(shows(tf))
 
@@ -35,6 +33,25 @@ import simulacrum._
 
 @SuppressWarnings(Array("org.wartremover.warts.PublicInference"))
 object ShowT {
+  trait Ops[T[_[_]], F[_]] {
+    def self: T[F]
+    def typeClassInstance: ShowT[T]
+    def show(implicit F: Functor[F], del: Delay[Show, F]): Cord = typeClassInstance.show(self)
+    def shows(implicit F: Functor[F], del: Delay[Show, F]): String = typeClassInstance.shows(self)
+  }
+  trait AllOps[T[_[_]], F[_]] extends Ops[T, F]
+  trait ToShowTOps {
+    implicit def toShowTOps[T[_[_]], F[_]](value: T[F])(implicit instance: ShowT[T]): AllOps[T, F] =
+      new AllOps[T, F] {
+        val self = value
+        val typeClassInstance = instance
+      }
+  }
+  object ops extends ToShowTOps
+  object nonInheritedOps extends ToShowTOps
+
+  def apply[T[_[_]]](implicit instance: ShowT[T]): ShowT[T] = instance
+
   def recursiveT[T[_[_]]: RecursiveT]: ShowT[T] = new ShowT[T] {
     override def show[F[_]: Functor](tf: T[F])(implicit del: Delay[Show, F]) =
       tf.cata(del(Cord.CordShow).show)

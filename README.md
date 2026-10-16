@@ -22,15 +22,37 @@ Generalized folds, unfolds, and traversals for fixed point data structures in Sc
 - [Time Traveling Recursion Schemes](https://jtobin.io/time-traveling-recursion) - Jared Tobin
 - [Automatic Differentiation via recursion schemes](https://jtobin.io/ad-via-recursion-schemes) - Jared Tobin
 
+## Scala 3 fork
+
+This fork ports the complete library, ScalaCheck support, and test suite to
+Scala 3.3.7 on the JVM and Scala.js. It uses Scalaz 7.2.36 and Monocle 1.6.3 through Scala 2.13 interoperability,
+keeping their binary interfaces consistent. Simulacrum macro annotations
+have been replaced by ordinary typed companions and syntax APIs.
+
+With JDK 17, Node.js, and sbt installed, run:
+
+```sh
+sbt 'testsJVM/test' 'testsJS/test' 'docs/mdoc'
+sbt 'coreJVM/publishLocal' 'coreJS/publishLocal' 'scalacheckJVM/publishLocal' 'scalacheckJS/publishLocal'
+```
+
+The JVM suite currently passes 475 tests, with one existing pending diff test.
+Scala.js compiles and runs the same suite, but currently has two failures:
+`Unit` display in a tree diff and stack overflow while eagerly constructing the
+McCarthy 91 `Partial` example. These tests remain enabled.
+
+The Scala 3 artifacts are not published to Maven Central. Use `publishLocal`
+from this checkout before adding the snapshot dependency below.
+
 ## Usage
 
 1. Add a dependency
  ```scala
-libraryDependencies += "com.slamdata" %% "matryoshka-core" % "0.21.5"
+libraryDependencies += "com.slamdata" %% "matryoshka-core" % "0.22.0-SNAPSHOT"
 ```
 Optionally, you can also depend on `matryoshka-scalacheck` to get `Arbitrary`/`Cogen`/`Shrink` instances for a bunch of pattern functors and fixed points.
 
-2. Apply some fix for SI-2712. Prior to 2.12, use @milessabin’s [compiler plugin](https://github.com/milessabin/si2712fix-plugin). As of 2.12, you can simply add `scalacOptions += "-Ypartial-unification"` to your build.sbt.
+2. Use Scala 3 type lambdas such as `[A] =>> ListF[Int, A]`. The library and tests also use the `ListF[Int, *]` shorthand, enabled by `scalacOptions += "-Ykind-projector"`. Scala 2 partial-unification and macro plugins are not needed.
 
 3. Add imports as needed. Usually the following should suffice
 ```scala
@@ -59,7 +81,7 @@ final case class Mul[A](l: A, r: A)  extends Expr[A]
 
 This abstract class generally allows a `Traverse` instance (or at least a `Functor` instance). Then you use one of the fixed point type constructors below to regain your recursive type.
 
-You may also want instances for `Delay[Equal, ?]`, `Delay[Order, ?]`, and `Delay[Show, ?]` (which are very similar to their non-`Delay` equivalents) to get instances for fixed points of your functor.
+You may also want instances for `Delay[Equal, *]`, `Delay[Order, *]`, and `Delay[Show, *]` (which are very similar to their non-`Delay` equivalents) to get instances for fixed points of your functor.
 
 ### Fixpoint Types
 
@@ -70,8 +92,8 @@ All of these types have instances for `Recursive`, `Corecursive`, `FunctorT`, `T
 - `Fix` – This is the simplest fixpoint type, implemented with general recursion.
 - `Mu` – This is for inductive (finite) recursive structures, models the concept of “data”, aka, the “least fixed point”.
 - `Nu` – This is for coinductive (potentially infinite) recursive structures, models the concept of “codata”, aka, the “greatest fixed point”.
-- `Cofree[?[_], A]` – Only has a `Corecursive` instance if there’s a `Monoid` for `A`. This represents a structure with some metadata attached to each node. In addition to the usual operations, it can also be folded using an Elgot algebra.
-- `Free[?[_], A]` – Does not have a `Recursive` instance. In addition to the usual operations, it can also be created by unfolding with an Elgot coalgebra.
+- `[F[_]] =>> Cofree[F, A]` – Only has a `Corecursive` instance if there’s a `Monoid` for `A`. This represents a structure with some metadata attached to each node. In addition to the usual operations, it can also be folded using an Elgot algebra.
+- `[F[_]] =>> Free[F, A]` – Does not have a `Recursive` instance. In addition to the usual operations, it can also be created by unfolding with an Elgot coalgebra.
 
 So a type like `Mu[Expr]` is now isomorphic to the original recursive type. However, the point is to avoid operating on recursive types directly …
 
@@ -134,7 +156,7 @@ Refolds compose an unfold with a fold, never actually constructing the intermedi
 
 The structure of these type classes is similar to `Recursive` and `Corecursive`, but rather than separating them between bottom-up and top-down traversals, `FunctorT` has both bottom-up and top-down traversals (and refold), while `TraverseT` has all the Kleisli variants (paralleling how `Traverse` extends `Functor`). A fixed-point type that has both `Recursive` and `Corecursive` instances has an implied `TraverseT` instance.
 
-The benefits of these classes is that it is possible to define the required `map` and `traverse` operations on fixed-point types that lack either a `project` or an `embed` (e.g., `Cofree[?[_], A]` lacks `embed` unless `A` has a `Monoid` instance, but can easily be `map`ped over).
+The benefits of these classes is that it is possible to define the required `map` and `traverse` operations on fixed-point types that lack either a `project` or an `embed` (e.g., `[F[_]] =>> Cofree[F, A]` lacks `embed` unless `A` has a `Monoid` instance, but can easily be `map`ped over).
 
 The tradeoff is that these operations can only transform between one fixed-point functor and another (or, in some cases, need to maintain the same functor).
 
@@ -154,7 +176,7 @@ Most well known (in fact, even referred to as “generalized recursion schemes�
 - when `W[A] = (B, A)`, it’s `zygo`, and
 - when `W[A] = Cofree[F, A]`, it’s `histo`.
 
-These specializations can give rise to other generalizations. `zygoT` uses `EnvT[B, ?[_], A]` and `ghisto` uses `Cofree[?[_], A]`.
+These specializations can give rise to other generalizations. `zygoT` uses `[F[_]] =>> EnvT[B, F, A]` and `ghisto` uses `[F[_]] =>> Cofree[F, A]`.
 
 #### …M
 

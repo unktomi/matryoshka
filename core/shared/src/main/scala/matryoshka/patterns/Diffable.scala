@@ -16,14 +16,12 @@
 
 package matryoshka.patterns
 
-import slamdata.Predef._
 import matryoshka._
 import matryoshka.implicits._
 
 import scalaz._, Scalaz._
-import simulacrum._
 
-@typeclass trait Diffable[F[_]] { self =>
+trait Diffable[F[_]] { self =>
   private implicit def selfʹ: Diffable[F] = self
 
   def diffImpl[T[_[_]]: BirecursiveT](l: T[F], r: T[F]):
@@ -43,12 +41,12 @@ import simulacrum._
     if (left.toList.length < right.toList.length)
       left.zipWithR(right)((l, r) =>
         l.fold(
-          Added[T, F, T[Diff[T, F, ?]]](r).embed)(
+          Added[T, F, T[Diff[T, F, *]]](r).embed)(
           _.paraMerga(r)(diff[T, F])))
     else
       left.zipWithL(right)((l, r) =>
         r.fold(
-          Removed[T, F, T[Diff[T, F, ?]]](l).embed)(
+          Removed[T, F, T[Diff[T, F, *]]](l).embed)(
           l.paraMerga(_)(diff[T, F])))
 
   // TODO: create something like Equals, but that overrides G[F[_]] (where G
@@ -61,8 +59,25 @@ import simulacrum._
     left: F[T[F]], right: F[T[F]])(
     implicit FT: Traverse[F], FM: Merge[F]):
       DiffT[T, F] =
-    LocallyDifferent[T, F, T[Diff[T, F, ?]]](diffTraverse[T, F](left, right), right.void).embed
+    LocallyDifferent[T, F, T[Diff[T, F, *]]](diffTraverse[T, F](left, right), right.void).embed
 }
 
 @SuppressWarnings(Array("org.wartremover.warts.PublicInference"))
-object Diffable
+object Diffable {
+  trait Ops[F[_], A] {
+    def self: F[A]
+    def typeClassInstance: Diffable[F]
+  }
+  trait AllOps[F[_], A] extends Ops[F, A]
+  trait ToDiffableOps {
+    implicit def toDiffableOps[F[_], A](value: F[A])(implicit instance: Diffable[F]): AllOps[F, A] =
+      new AllOps[F, A] {
+        val self = value
+        val typeClassInstance = instance
+      }
+  }
+  object ops extends ToDiffableOps
+  object nonInheritedOps extends ToDiffableOps
+
+  def apply[F[_]](implicit instance: Diffable[F]): Diffable[F] = instance
+}

@@ -16,14 +16,13 @@
 
 package matryoshka.data
 
-import slamdata.Predef._
 import matryoshka._
 
 import scalaz._
 
 trait EitherInstances {
   implicit def eitherBirecursive[A, B]
-      : Birecursive.Aux[Either[A, B], Const[Either[A, B], ?]] =
+      : Birecursive.Aux[Either[A, B], Const[Either[A, B], *]] =
     id.idBirecursive[Either[A, B]]
 }
 

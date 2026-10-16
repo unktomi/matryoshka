@@ -19,7 +19,8 @@ package matryoshka.implicits
 import matryoshka._
 
 import scalaz._
-import scalaz.syntax.monad._
+import scalaz.syntax.applicative._
+import scalaz.syntax.functor._
 
 sealed class CoalgebraOps[F[_], A](self: Coalgebra[F, A]) {
   def generalize[N[_]: Applicative](implicit F: Functor[F])

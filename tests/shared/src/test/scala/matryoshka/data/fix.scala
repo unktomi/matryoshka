@@ -16,7 +16,8 @@
 
 package matryoshka.data
 
-import slamdata.Predef._
+import matryoshka._
+
 import matryoshka.exp.Exp
 import matryoshka.helpers._
 import matryoshka.patterns.CoEnv
@@ -33,6 +34,6 @@ class FixSpec extends Specification with AlgebraChecks {
 
     addFragments(properties(equal.laws[Fix[Exp]]))
 
-    checkFoldIsoLaws[Fix[CoEnv[Int, Exp, ?]], CoEnv[Int, Exp, ?], Free[Exp, Int]]("Fix", CoEnv.freeIso)
+    checkFoldIsoLaws[Fix[CoEnv[Int, Exp, *]], CoEnv[Int, Exp, *], Free[Exp, Int]]("Fix", CoEnv.freeIso)
   }
 }

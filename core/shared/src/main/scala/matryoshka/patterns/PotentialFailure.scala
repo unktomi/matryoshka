@@ -34,8 +34,8 @@ final case class PartialFailure[T[_[_]], F[_], E, A] private[patterns](v: F[A])
     extends PotentialFailure[T, F, E, A]
 
 object PotentialFailure {
-  implicit def potentialFailureEqual[T[_[_]], F[_], E: Equal](implicit T: Equal[T[F]], F: Delay[Equal, F]): Delay[Equal, PotentialFailure[T, F, E, ?]] =
-    new Delay[Equal, PotentialFailure[T, F, E, ?]] {
+  implicit def potentialFailureEqual[T[_[_]], F[_], E: Equal](implicit T: Equal[T[F]], F: Delay[Equal, F]): Delay[Equal, PotentialFailure[T, F, E, *]] =
+    new Delay[Equal, PotentialFailure[T, F, E, *]] {
       def apply[α](eq: Equal[α]) =
         Equal.equal {
           case (Success(v1),        Success(v2))        => T.equal(v1, v2)
@@ -48,11 +48,11 @@ object PotentialFailure {
 
   // TODO: implement low-prio Bifunctor and Bifoldable with looser constraint on F
   implicit def bitraverse[T[_[_]], F[_]: Traverse]:
-      Bitraverse[PotentialFailure[T, F, ?, ?]] =
-    new Bitraverse[PotentialFailure[T, F, ?, ?]] {
+      Bitraverse[PotentialFailure[T, F, *, *]] =
+    new Bitraverse[PotentialFailure[T, F, *, *]] {
       def bitraverseImpl[G[_], A, B, C, D](
         fab: PotentialFailure[T, F, A, B])(
-        f: A ⇒ G[C], g: B ⇒ G[D])(
+        f: A => G[C], g: B => G[D])(
         implicit G: Applicative[G]) =
         fab match {
           case Success(v)        => G.point(Success(v))
@@ -62,6 +62,6 @@ object PotentialFailure {
     }
 
   implicit def traverse[T[_[_]], F[_]: Traverse, E]:
-      Traverse[PotentialFailure[T, F, E, ?]] =
+      Traverse[PotentialFailure[T, F, E, *]] =
     bitraverse[T, F].rightTraverse[E]
 }

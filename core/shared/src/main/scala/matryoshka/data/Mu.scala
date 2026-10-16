@@ -25,7 +25,7 @@ import scalaz._, Scalaz._
 /** This is for inductive (finite) recursive structures, models the concept of
   * “data”, aka, the “least fixed point”.
   */
-final case class Mu[F[_]](unMu: Algebra[F, ?] ~> Id)
+final case class Mu[F[_]](unMu: Algebra[F, *] ~> Id)
 
 object Mu {
   implicit def birecursiveT: BirecursiveT[Mu] = new BirecursiveT[Mu] {
@@ -35,7 +35,7 @@ object Mu {
     override def cataT[F[_]: Functor, A](t: Mu[F])(f: Algebra[F, A]) = t.unMu(f)
 
     def embedT[F[_]: Functor](t: F[Mu[F]]) =
-      Mu(new (Algebra[F, ?] ~> Id) {
+      Mu(new (Algebra[F, *] ~> Id) {
         def apply[A](fa: Algebra[F, A]): A = fa(t.map(cataT(_)(fa)))
       })
   }

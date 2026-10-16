@@ -16,25 +16,25 @@
 
 package matryoshka.instances.fixedpoint
 
-import slamdata.Predef._
 import matryoshka._
+import matryoshka.instances.fixedpoint._
 import matryoshka.implicits._
 import matryoshka.scalacheck.arbitrary._
 
 import org.specs2.ScalaCheck
 import org.specs2.mutable._
-import org.specs2.scalaz.{ScalazMatchers}
+import matryoshka.helpers.ScalazMatchers
 import scalaz._, Scalaz._
 
 class StreamSpec extends Specification with ScalaCheck with ScalazMatchers {
   /** Infinite sequence of Fibonacci numbers (at least until they overflow
     * int32)
     */
-  val fib = (1, 0).ana[Stream[Int]](binarySequence(_ + _))
+  val fib = (1, 0).ana[Stream[Int]](binarySequence[Int](_ + _))
 
   /** Generates an infinite stream of the carrier value.
     */
-  def constantly[A]: Coalgebra[(A, ?), A] = i => (i, i)
+  def constantly[A]: Coalgebra[(A, *), A] = i => (i, i)
 
   "fib" should {
     "begin with 1" in {
@@ -59,19 +59,19 @@ class StreamSpec extends Specification with ScalaCheck with ScalazMatchers {
 
   "constantly" should {
     "begin with the given value" >> prop { (i: Int) =>
-      i.ana[Stream[Int]](constantly).head must_== i
+      i.ana[Stream[Int]](constantly[Int]).head must_== i
     }
 
     // FIXME: These two blow up the stack with much larger inputs
 
     "have the given value at an arbitrary point" >> prop { (i: Int, d: Int) =>
       350.anaM[Nat](Nat.fromInt) ∘
-        (i.ana[Stream[Int]](constantly).drop(_).head) must
+        (i.ana[Stream[Int]](constantly[Int]).drop(_).head) must
         equal(i.some)
     }
 
     "have subsequence of the given value" >> prop { (n: Nat, i: Int, t: Int) =>
-      i.ana[Stream[Int]](constantly).take[List[Int]](n) must
+      i.ana[Stream[Int]](constantly[Int]).take[List[Int]](n) must
         equal(List.fill[List[Int]](n)(i))
     }
   }

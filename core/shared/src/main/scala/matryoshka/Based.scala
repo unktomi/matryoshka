@@ -16,19 +16,35 @@
 
 package matryoshka
 
-import slamdata.Predef._
 
-import simulacrum.typeclass
 
 /** Provides a type describing the pattern functor of some {co}recursive type
   * `T`. For standard fixed-point types like [[matryoshka.data.Fix]],
   * `Based[Fix[F]]#Base` is simply `F`. However, directly recursive types
   * generally have a less obvious pattern functor. E.g., `Based[Cofree[F,
-  * A]]#Base` is `EnvT[A, F, ?]`.
+  * A]]#Base` is `EnvT[A, F, *]`.
   */
-@typeclass trait Based[T] {
+trait Based[T] {
   type Base[A]
 }
 
 @SuppressWarnings(Array("org.wartremover.warts.PublicInference"))
-object Based
+object Based {
+  trait Ops[T] {
+    def self: T
+    def typeClassInstance: Based[T]
+  }
+  trait AllOps[T] extends Ops[T]
+  trait ToBasedOps {
+    implicit def toBasedOps[T](value: T)(implicit instance: Based[T]): AllOps[T] =
+      new AllOps[T] {
+        val self = value
+        val typeClassInstance = instance
+      }
+  }
+  object ops extends ToBasedOps
+  object nonInheritedOps extends ToBasedOps
+
+  def apply[T](implicit instance: Based[T]): Based[T] = instance
+
+}

@@ -16,7 +16,6 @@
 
 package matryoshka.patterns
 
-import slamdata.Predef._
 import matryoshka._
 import matryoshka.data.Fix
 import matryoshka.exp._
@@ -31,18 +30,18 @@ import scalaz.scalacheck.ScalazProperties._
 class PotentialFailureSpec extends Specification with ScalaCheck {
   implicit def potentialFailureArbitrary[T[_[_]], F[_], E: Arbitrary](
     implicit T: Arbitrary[T[F]], F: Delay[Arbitrary, F]):
-      Delay[Arbitrary, PotentialFailure[T, F, E, ?]] =
-    new Delay[Arbitrary, PotentialFailure[T, F, E, ?]] {
+      Delay[Arbitrary, PotentialFailure[T, F, E, *]] =
+    new Delay[Arbitrary, PotentialFailure[T, F, E, *]] {
       def apply[α](arb: Arbitrary[α]) =
         Arbitrary(Gen.oneOf(
-          T.arbitrary.map(Success[T, F, E, α](_)),
-          Arbitrary.arbitrary[E].map(Failure[T, F, E, α](_)),
+          T.arbitrary.map(matryoshka.patterns.Success[T, F, E, α](_)),
+          Arbitrary.arbitrary[E].map(matryoshka.patterns.Failure[T, F, E, α](_)),
           F(arb).arbitrary.map(PartialFailure[T, F, E, α](_))))
     }
 
   "PotentialFailure" >> {
     addFragments(properties(equal.laws[PotentialFailure[Fix, Exp, String, Int]]))
-    addFragments(properties(bitraverse.laws[PotentialFailure[Fix, Exp, ?, ?]]))
-    addFragments(properties(traverse.laws[PotentialFailure[Fix, Exp, String, ?]]))
+    addFragments(properties(bitraverse.laws[PotentialFailure[Fix, Exp, *, *]]))
+    addFragments(properties(traverse.laws[PotentialFailure[Fix, Exp, String, *]]))
   }
 }

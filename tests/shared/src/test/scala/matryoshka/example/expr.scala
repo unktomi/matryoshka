@@ -18,7 +18,6 @@ package matryoshka.example
 
 import org.specs2.mutable._
 
-import slamdata.Predef._
 import matryoshka._
 import matryoshka.data._
 import matryoshka.implicits._

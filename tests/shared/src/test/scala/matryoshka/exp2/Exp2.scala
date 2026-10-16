@@ -16,7 +16,6 @@
 
 package matryoshka.exp2
 
-import slamdata.Predef._
 import matryoshka._
 
 import org.scalacheck._
@@ -31,7 +30,7 @@ object Exp2 {
   implicit val arbitrary: Delay[Arbitrary, Exp2] = new Delay[Arbitrary, Exp2] {
     def apply[α](arb: Arbitrary[α]): Arbitrary[Exp2[α]] =
       Arbitrary(Gen.oneOf(
-        Gen.const(Const[α]),
+        Gen.const(Const[α]()),
         Arbitrary.arbitrary[Int].map(Num2[α](_)),
         arb.arbitrary.map(Single(_))))
   }
@@ -41,7 +40,7 @@ object Exp2 {
   val traverse: Traverse[Exp2] = new Traverse[Exp2] {
     def traverseImpl[G[_], A, B](
       fa: Exp2[A])(
-      f: (A) ⇒ G[B])(
+      f: (A) => G[B])(
       implicit G: Applicative[G]) =
       fa match {
         case Const()   => G.point(Const[B]())

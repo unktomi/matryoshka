@@ -39,7 +39,7 @@ trait Corecursive[T] extends Based[T] { self =>
     (k: DistributiveLaw[N, Base], f: GCoalgebra[N, Base, A])
     (implicit BF: Functor[Base])
       : T =
-    ana[N[A]](a.point[N])(na => k(na.map(f)).map(_.join))
+    ana[N[A]](a.point[N])(na => BF.map(k(na.map(f)))(_.join))
 
   def ganaM[N[_]: Monad: Traverse, M[_]: Monad, A](
     a: A)(
@@ -53,20 +53,20 @@ trait Corecursive[T] extends Based[T] { self =>
     k: DistributiveLaw[N, Base], ψ: ElgotCoalgebra[N, Base, A])(
     implicit BF: Functor[Base])
       : T =
-    ana(ψ(a))(k(_) ∘ (_ >>= ψ))
+    ana(ψ(a))(nfa => BF.map(k(nfa))(_ >>= ψ))
 
   /** An unfold that can short-circuit certain sections.
     */
-  def apo[A](a: A)(f: GCoalgebra[T \/ ?, Base, A])(implicit BF: Functor[Base])
+  def apo[A](a: A)(f: GCoalgebra[\/[T, *], Base, A])(implicit BF: Functor[Base])
       : T =
     hylo[λ[α => Base[T \/ α]], A, T](
       a)(
       fa => embed(fa.map(_.merge)), f)(
-      BF.compose[T \/ ?])
+      BF.compose[\/[T, *]])
 
   def elgotApo[A]
     (a: A)
-    (f: ElgotCoalgebra[T \/ ?, Base, A])
+    (f: ElgotCoalgebra[\/[T, *], Base, A])
     (implicit BF: Functor[Base])
       : T =
     hylo[λ[α => T \/ Base[α]], A, T](
@@ -78,42 +78,42 @@ trait Corecursive[T] extends Based[T] { self =>
     */
   def gapo[A, B]
     (a: A)
-    (ψ0: Coalgebra[Base, B], ψ: GCoalgebra[B \/ ?, Base, A])
+    (ψ0: Coalgebra[Base, B], ψ: GCoalgebra[\/[B, *], Base, A])
     (implicit BF: Functor[Base])
       : T =
     hylo[λ[α => Base[B \/ α]], A, T](
       a)(
       fa => embed(fa.map(_.leftMap(ana(_)(ψ0)).merge)), ψ)(
-      BF.compose[B \/ ?])
+      BF.compose[\/[B, *]])
 
   def apoM[M[_]: Monad, A](
     a: A)(
-    f: GCoalgebraM[T \/ ?, M, Base, A])(
+    f: GCoalgebraM[\/[T, *], M, Base, A])(
     implicit BT: Traverse[Base]):
       M[T] =
     hyloM[M, λ[α => Base[T \/ α]], A, T](
       a)(
       fa => embed(fa ∘ (_.merge)).point[M], f)(
-      Monad[M], BT.compose[T \/ ?])
+      Monad[M], BT.compose[\/[T, *]])
 
   def futu[A]
     (a: A)
-    (f: GCoalgebra[Free[Base, ?], Base, A])
+    (f: GCoalgebra[Free[Base, *], Base, A])
     (implicit BF: Functor[Base])
       : T =
-    gana[Free[Base, ?], A](a)(distFutu, f)
+    gana[Free[Base, *], A](a)(distFutu, f)
 
   def elgotFutu[A]
     (a: A)
-    (f: ElgotCoalgebra[Free[Base, ?], Base, A])
+    (f: ElgotCoalgebra[Free[Base, *], Base, A])
     (implicit BF: Functor[Base])
       : T =
-    elgotAna[Free[Base, ?], A](a)(distFutu, f)
+    elgotAna[Free[Base, *], A](a)(distFutu, f)
 
-  def futuM[M[_]: Monad, A](a: A)(f: GCoalgebraM[Free[Base, ?], M, Base, A])(
+  def futuM[M[_]: Monad, A](a: A)(f: GCoalgebraM[Free[Base, *], M, Base, A])(
     implicit BT: Traverse[Base]):
       M[T] =
-    ganaM[Free[Base, ?], M, A](a)(distFutu, f)
+    ganaM[Free[Base, *], M, A](a)(distFutu, f)
 
   def transAna[U, G[_]: Functor]
     (u: U)
@@ -131,18 +131,18 @@ trait Corecursive[T] extends Based[T] { self =>
 
   def transApo[U, G[_]: Functor]
     (u: U)
-    (f: CoalgebraicGTransform[T \/ ?, U, G, Base])
+    (f: CoalgebraicGTransform[\/[T, *], U, G, Base])
     (implicit U: Recursive.Aux[U, G], BF: Functor[Base])
       : T = {
     implicit val nested: Functor[λ[α => Base[T \/ α]]] =
-      BF.compose[T \/ ?]
+      BF.compose[\/[T, *]]
 
     transHylo[U, G, λ[α => Base[T \/ α]], T, Base](u)(_ ∘ (_.merge), f)
   }
 
   def transFutu[U, G[_]: Functor]
     (u: U)
-    (f: CoalgebraicGTransform[Free[Base, ?], U, G, Base])
+    (f: CoalgebraicGTransform[Free[Base, *], U, G, Base])
     (implicit U: Recursive.Aux[U, G], BF: Functor[Base])
       : T =
     transGana(u)(distFutu[Base], f)

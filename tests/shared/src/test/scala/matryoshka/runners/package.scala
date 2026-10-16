@@ -16,6 +16,8 @@
 
 package matryoshka
 
+import matryoshka._
+
 import matryoshka.data._
 import matryoshka.implicits._
 

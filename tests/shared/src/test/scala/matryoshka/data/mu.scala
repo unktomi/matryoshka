@@ -16,7 +16,8 @@
 
 package matryoshka.data
 
-import slamdata.Predef._
+import matryoshka._
+
 import matryoshka.exp.Exp
 import matryoshka.helpers._
 import matryoshka.patterns.CoEnv
@@ -31,6 +32,6 @@ class MuSpec extends Specification with AlgebraChecks {
   "Mu" >> {
     addFragments(properties(equal.laws[Mu[Exp]]))
 
-    checkFoldIsoLaws[Mu[CoEnv[Int, Exp, ?]], CoEnv[Int, Exp, ?], Free[Exp, Int]]("Mu", CoEnv.freeIso)
+    checkFoldIsoLaws[Mu[CoEnv[Int, Exp, *]], CoEnv[Int, Exp, *], Free[Exp, Int]]("Mu", CoEnv.freeIso)
   }
 }

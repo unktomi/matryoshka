@@ -16,7 +16,8 @@
 
 package matryoshka
 
-import slamdata.Predef._
+import matryoshka._
+
 import matryoshka.data.Fix
 
 package object exp {

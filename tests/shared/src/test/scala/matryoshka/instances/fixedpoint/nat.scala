@@ -17,13 +17,14 @@
 package matryoshka.instances.fixedpoint
 
 import matryoshka._
+import matryoshka.instances.fixedpoint._
 import matryoshka.implicits._
 import matryoshka.scalacheck.arbitrary._
 // import matryoshka.scalacheck.cogen._
 
 // import monocle.law.discipline._
 import org.specs2.mutable._
-import org.specs2.scalaz.ScalazMatchers
+import matryoshka.helpers.ScalazMatchers
 import org.typelevel.discipline.specs2.mutable._
 import scalaz._, Scalaz._
 import scalaz.scalacheck.ScalazProperties._

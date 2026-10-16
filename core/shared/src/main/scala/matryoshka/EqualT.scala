@@ -16,13 +16,11 @@
 
 package matryoshka
 
-import slamdata.Predef._
 import matryoshka.implicits._
 
 import scalaz._
-import simulacrum._
 
-@typeclass trait EqualT[T[_[_]]] {
+trait EqualT[T[_[_]]] {
   def equal[F[_]: Functor](tf1: T[F], tf2: T[F])(implicit del: Delay[Equal, F]):
       Boolean
 
@@ -32,6 +30,25 @@ import simulacrum._
 
 @SuppressWarnings(Array("org.wartremover.warts.PublicInference"))
 object EqualT {
+  trait Ops[T[_[_]], F[_]] {
+    def self: T[F]
+    def typeClassInstance: EqualT[T]
+    def equal(other: T[F])(implicit F: Functor[F], del: Delay[Equal, F]): Boolean =
+      typeClassInstance.equal(self, other)
+  }
+  trait AllOps[T[_[_]], F[_]] extends Ops[T, F]
+  trait ToEqualTOps {
+    implicit def toEqualTOps[T[_[_]], F[_]](value: T[F])(implicit instance: EqualT[T]): AllOps[T, F] =
+      new AllOps[T, F] {
+        val self = value
+        val typeClassInstance = instance
+      }
+  }
+  object ops extends ToEqualTOps
+  object nonInheritedOps extends ToEqualTOps
+
+  def apply[T[_[_]]](implicit instance: EqualT[T]): EqualT[T] = instance
+
   def recursiveT[T[_[_]]: RecursiveT]: EqualT[T] = new EqualT[T] {
     def equal[F[_]: Functor]
       (tf1: T[F], tf2: T[F])

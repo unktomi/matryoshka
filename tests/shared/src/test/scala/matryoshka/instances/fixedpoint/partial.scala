@@ -16,8 +16,8 @@
 
 package matryoshka.instances.fixedpoint
 
-import slamdata.Predef._
 import matryoshka._
+import matryoshka.instances.fixedpoint._
 import matryoshka.implicits._
 import matryoshka.scalacheck.arbitrary._
 
@@ -26,7 +26,7 @@ import scala.Predef.implicitly
 import org.scalacheck._
 import org.specs2.ScalaCheck
 import org.specs2.mutable._
-import org.specs2.scalaz.{ScalazMatchers}
+import matryoshka.helpers.ScalazMatchers
 import scalaz._, Scalaz._
 import scalaz.scalacheck.{ScalazProperties => Props}
 
@@ -49,37 +49,37 @@ class PartialSpec extends Specification with ScalazMatchers with ScalaCheck {
 
   "never" should {
     "always have more steps" >> prop { (i: Conat) =>
-      Partial.never[Int].runFor(i) must beRightDisjunction
+      Partial.never[Int].runFor(i).toEither must beRight
     }
   }
 
   "runFor" should {
     "return now immediately" in {
-      Partial.now(13).runFor(Nat.zero[Nat]) must beLeftDisjunction(13)
+      Partial.now(13).runFor(Nat.zero[Nat]).toEither must beLeft(13)
     }
 
     "return a value when it runs past the end" >> prop { (i: Conat) =>
-      i.transAna[Partial[Int]](Partial.delay(7)).runFor(i) must
-        beLeftDisjunction(7)
+      i.transAna[Partial[Int]](Partial.delay(7).apply(_)).runFor(i).toEither must
+        beLeft(7)
     }
 
     "return after multiple runs" >> prop { (a: Conat, b: Conat) =>
       b > Nat.zero[Conat] ==> {
-        val first = (a + b).transAna[Partial[Int]](Partial.delay(27)).runFor(a)
-        first must beRightDisjunction
-        first.flatMap(_.runFor(b)) must beLeftDisjunction(27)
+        val first = (a + b).transAna[Partial[Int]](Partial.delay(27).apply(_)).runFor(a)
+        first.toEither must beRight
+        first.flatMap(_.runFor(b)).toEither must beLeft(27)
       }
     }
 
     "still pending one short" >> prop { (a: Conat) =>
-      val first = (a + Nat.one[Conat]).transAna[Partial[Int]](Partial.delay(27)).runFor(a)
-      first must beRightDisjunction
-      first.flatMap(_.runFor(a + Nat.one[Conat])) must beLeftDisjunction(27)
+      val first = (a + Nat.one[Conat]).transAna[Partial[Int]](Partial.delay(27).apply(_)).runFor(a)
+      first.toEither must beRight
+      first.flatMap(_.runFor(a + Nat.one[Conat])).toEither must beLeft(27)
     }
 
     "return exactly at the end" >> prop { (n: Conat, i: Int) =>
-      n.transAna[Partial[Int]](Partial.delay(i)).runFor(n) must
-        beLeftDisjunction(i)
+      n.transAna[Partial[Int]](Partial.delay(i).apply(_)).runFor(n).toEither must
+        beLeft(i)
     }
   }
 
