@@ -67,5 +67,12 @@ lazy val coreJVM = core.jvm
 lazy val coreJS = core.js
 lazy val scalacheckJVM = scalacheck.jvm
 lazy val scalacheckJS = scalacheck.js
-lazy val testsJVM = tests.jvm
-lazy val testsJS = tests.js
+// The inherited McCarthy-91 example constructs its first Partial eagerly.
+// Give its documented, stack-dependent lower-bound test the same explicit
+// stack budget on both runtimes; this is not a stack-safety test.
+lazy val testsJVM = tests.jvm.settings(
+  Test / fork := true,
+  Test / javaOptions += "-Xss4m")
+lazy val testsJS = tests.js.settings(
+  Test / jsEnv := new org.scalajs.jsenv.nodejs.NodeJSEnv(
+    org.scalajs.jsenv.nodejs.NodeJSEnv.Config().withArgs(List("--stack-size=4096"))))

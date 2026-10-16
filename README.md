@@ -36,10 +36,12 @@ sbt 'testsJVM/test' 'testsJS/test' 'docs/mdoc'
 sbt 'coreJVM/publishLocal' 'coreJS/publishLocal' 'scalacheckJVM/publishLocal' 'scalacheckJS/publishLocal'
 ```
 
-The JVM suite currently passes 475 tests, with one existing pending diff test.
-Scala.js compiles and runs the same suite, but currently has two failures:
-`Unit` display in a tree diff and stack overflow while eagerly constructing the
-McCarthy 91 `Partial` example. These tests remain enabled.
+The JVM and Scala.js suites each pass 475 tests, with zero failures/errors and
+one existing pending diff test. All five executable documentation files compile.
+Both test runtimes use an explicit 4 MiB stack budget for the inherited,
+stack-dependent McCarthy 91 construction test. The separate 100-million-step
+`Partial` traversal test exercises stack-safe evaluation. Tree-diff expectations
+use Scalaz's selected `Show[Unit]` rendering on each platform.
 
 The Scala 3 artifacts are not published to Maven Central. Use `publishLocal`
 from this checkout before adding the snapshot dependency below.

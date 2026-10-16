@@ -152,14 +152,17 @@ class DiffSpec extends Specification with DiffArb with ScalazMatchers {
             Empty[Mu[Example]]().embed)).embed
 
       // TODO: Eliminate this type annotation
+      // Tree labels use the selected Show[Unit], whose rendering differs
+      // between the JVM and Scala.js Scalaz artifacts.
+      val unit = Show[Unit].shows(())
       ((left paraMerga right)(diff): Mu[Diff[Mu, Example, *]]).cata(toTree).drawTree must
-        equal("""TwoLists([(),(),(),()], [(),(),()])
+        equal(s"""TwoLists([$unit,$unit,$unit,$unit], [$unit,$unit,$unit])
                 ||
                 |+- NonRec("foo", 3) <=/=> NonRec("bar", 3)
                 ||
-                |+- SemiRec(2, ()) <=/=> SemiRec(10, ())
+                |+- SemiRec(2, $unit) <=/=> SemiRec(10, $unit)
                 ||  |
-                ||  `- SemiRec(8, ())
+                ||  `- SemiRec(8, $unit)
                 ||     |
                 ||     `- NonRec("meh", 6) <=/=> NonRec("meh", 7)
                 ||
