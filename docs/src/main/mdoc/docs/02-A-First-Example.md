@@ -121,7 +121,7 @@ So, that’s two simple examples where we don’t have to think about recursion 
 ```scala mdoc
 Recursive[Arithmetic].cata(
   expr)(
-  Zip[Algebra[ArithmeticF, ?]].zip(eval, prettyPrint))
+  Zip[Algebra[ArithmeticF, *]].zip(eval, prettyPrint))
 ```
 
 Now we’ve generated _both_ values, but we only traversed the tree once. This is a pattern we see a lot in recursion schemes – ways to compose operations at the algebra level, such that we can do multiple operations in a single pass. And there are a bunch of “algebra transformations”, which massage these algebras into the shapes needed for different kinds of composition, so you don’t need to think about that at the point at which the algebra is defined.
@@ -146,7 +146,7 @@ def buildOp
   s"$newA $op $newB"
 }
 
-val prettyPrintʹ: GAlgebra[(Int, ?), ArithmeticF, String] = {
+val prettyPrintʹ: GAlgebra[(Int, *), ArithmeticF, String] = {
   case NumberF(v)      => v.toString
   case AddF(a, b)      => buildOp(3, a, "+", b)
   case SubtractF(a, b) => buildOp(4, a, "-", b)

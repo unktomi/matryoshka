@@ -24,7 +24,7 @@ trait IdInstances {
   /** This is a single (low-priority) instance to provide folds/unfolds for all
     * non-recursive data types.
     */
-  def idBirecursive[A]: Birecursive.Aux[A, Const[A, ?]] =
+  def idBirecursive[A]: Birecursive.Aux[A, Const[A, *]] =
     Birecursive.fromAlgebraIso(_.getConst, Const(_))
 }
 

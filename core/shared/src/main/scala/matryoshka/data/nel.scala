@@ -23,7 +23,7 @@ import scalaz._
 
 trait NonEmptyListInstances {
   implicit def nelBirecursive[A]
-      : Birecursive.Aux[NonEmptyList[A], AndMaybe[A, ?]] =
+      : Birecursive.Aux[NonEmptyList[A], AndMaybe[A, *]] =
     Birecursive.fromAlgebraIso({
       case Indeed(a, bs) => a <:: bs
       case Only(a)     => NonEmptyList(a)

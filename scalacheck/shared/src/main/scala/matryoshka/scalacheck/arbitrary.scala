@@ -16,7 +16,6 @@
 
 package matryoshka.scalacheck
 
-import slamdata.Predef._
 import matryoshka._
 import matryoshka.data._
 import matryoshka.implicits._
@@ -56,8 +55,8 @@ trait ArbitraryInstances extends ArbitraryInstancesʹ {
 
   implicit def coEnvArbitrary[E: Arbitrary, F[_]](
     implicit F: Delay[Arbitrary, F]):
-      Delay[Arbitrary, CoEnv[E, F, ?]] =
-    new Delay[Arbitrary, CoEnv[E, F, ?]] {
+      Delay[Arbitrary, CoEnv[E, F, *]] =
+    new Delay[Arbitrary, CoEnv[E, F, *]] {
       def apply[α](arb: Arbitrary[α]) =
         // NB: Not sure why this version doesn’t work.
         // Arbitrary.arbitrary[E \/ F[α]] ∘ (CoEnv(_))
@@ -66,23 +65,23 @@ trait ArbitraryInstances extends ArbitraryInstancesʹ {
           F(arb).arbitrary.map(_.right))) ∘ (CoEnv(_))
     }
 
-  implicit def envTArbitrary[E: Arbitrary, F[_]](implicit F: Delay[Arbitrary, F]): Delay[Arbitrary, EnvT[E, F, ?]] =
-    new Delay[Arbitrary, EnvT[E, F, ?]] {
+  implicit def envTArbitrary[E: Arbitrary, F[_]](implicit F: Delay[Arbitrary, F]): Delay[Arbitrary, EnvT[E, F, *]] =
+    new Delay[Arbitrary, EnvT[E, F, *]] {
       def apply[A](arb: Arbitrary[A]) =
         Arbitrary(
           (Arbitrary.arbitrary[E] ⊛ F(arb).arbitrary)((e, f) => EnvT((e, f))))
     }
 
-  implicit def listFArbitrary[A: Arbitrary]: Delay[Arbitrary, ListF[A, ?]] =
-    new Delay[Arbitrary, ListF[A, ?]] {
+  implicit def listFArbitrary[A: Arbitrary]: Delay[Arbitrary, ListF[A, *]] =
+    new Delay[Arbitrary, ListF[A, *]] {
       def apply[B](arb: Arbitrary[B]) =
         Arbitrary(Gen.oneOf[ListF[A, B]](
           NilF[A, B]().point[Gen],
           (Arbitrary.arbitrary[A] ⊛ arb.arbitrary)(ConsF[A, B])))
     }
 
-  implicit def nelFArbitrary[A: Arbitrary]: Delay[Arbitrary, AndMaybe[A, ?]] =
-    new Delay[Arbitrary, AndMaybe[A, ?]] {
+  implicit def nelFArbitrary[A: Arbitrary]: Delay[Arbitrary, AndMaybe[A, *]] =
+    new Delay[Arbitrary, AndMaybe[A, *]] {
       def apply[B](arb: Arbitrary[B]) =
         Arbitrary(Gen.oneOf[AndMaybe[A, B]](
           (Arbitrary.arbitrary[A] ⊛ arb.arbitrary)(Indeed[A, B]),
@@ -92,12 +91,12 @@ trait ArbitraryInstances extends ArbitraryInstancesʹ {
   implicit def cofreeArbitrary[F[_]: Functor, A]
     (implicit F: Delay[Arbitrary, F], A: Arbitrary[A])
       : Arbitrary[Cofree[F, A]] =
-    corecursiveArbitrary[Cofree[F, A], EnvT[A, F, ?]]
+    corecursiveArbitrary[Cofree[F, A], EnvT[A, F, *]]
 
   implicit def freeArbitrary[F[_]: Functor, A]
     (implicit F: Delay[Arbitrary, F], A: Arbitrary[A])
       : Arbitrary[Free[F, A]] =
-    corecursiveArbitrary[Free[F, A], CoEnv[A, F, ?]]
+    corecursiveArbitrary[Free[F, A], CoEnv[A, F, *]]
 
   implicit val optionArbitrary: Delay[Arbitrary, Option] =
     new Delay[Arbitrary, Option] {
@@ -107,8 +106,8 @@ trait ArbitraryInstances extends ArbitraryInstancesʹ {
           (75, arb.arbitrary.map(_.some))))
     }
 
-  implicit def eitherArbitrary[A: Arbitrary]: Delay[Arbitrary, A \/ ?] =
-    new Delay[Arbitrary, A \/ ?] {
+  implicit def eitherArbitrary[A: Arbitrary]: Delay[Arbitrary, \/[A, *]] =
+    new Delay[Arbitrary, \/[A, *]] {
       def apply[B](arb: Arbitrary[B]) =
         Arbitrary(Gen.oneOf(
           Arbitrary.arbitrary[A].map(-\/(_)),

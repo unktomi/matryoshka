@@ -16,7 +16,6 @@
 
 package matryoshka.patterns
 
-import slamdata.Predef._
 import matryoshka._
 import matryoshka.data._
 import matryoshka.exp.Exp
@@ -32,17 +31,17 @@ import scalaz.scalacheck.ScalazProperties._
 class CoEnvSpec extends Specification with AlgebraChecks {
   "CoEnv" >> {
     addFragments(properties(equal.laws[CoEnv[String, Exp, Int]]))
-    addFragments(properties(bitraverse.laws[CoEnv[?, Exp, ?]]))
-    addFragments(properties(traverse.laws[CoEnv[Int, Exp, ?]]))
+    addFragments(properties(bitraverse.laws[CoEnv[*, Exp, *]]))
+    addFragments(properties(traverse.laws[CoEnv[Int, Exp, *]]))
     // NB: This is to test the low-prio Bi-functor/-foldable instances, so if
     //     Exp2 gets a Traverse instance, this needs to change.
-    addFragments(properties(bifunctor.laws[CoEnv[?, Exp2, ?]]))
-    addFragments(properties(functor.laws[CoEnv[Int, Exp2, ?]]))
-    addFragments(properties(bifoldable.laws[CoEnv[?, Exp2, ?]]))
-    addFragments(properties(foldable.laws[CoEnv[Int, Exp2, ?]]))
+    addFragments(properties(bifunctor.laws[CoEnv[*, Exp2, *]]))
+    addFragments(properties(functor.laws[CoEnv[Int, Exp2, *]]))
+    addFragments(properties(bifoldable.laws[CoEnv[*, Exp2, *]]))
+    addFragments(properties(foldable.laws[CoEnv[Int, Exp2, *]]))
     // FIXME: These instances don’t fulfill the laws
-    // monad.laws[CoEnv[String, Option, ?]].check(Test.Parameters.default)
-    // monad.laws[CoEnv[String, NonEmptyList, ?]].check(Test.Parameters.default)
+    // monad.laws[CoEnv[String, Option, *]].check(Test.Parameters.default)
+    // monad.laws[CoEnv[String, NonEmptyList, *]].check(Test.Parameters.default)
 
     checkAlgebraIsoLaws("CoEnv ⇔ Free", CoEnv.freeIso[Int, Exp])
   }

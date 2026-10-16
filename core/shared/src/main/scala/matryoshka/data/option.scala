@@ -16,14 +16,13 @@
 
 package matryoshka.data
 
-import slamdata.Predef._
 import matryoshka._
 
 import scalaz._
 
 trait OptionInstances {
   implicit def optionBirecursive[A]
-      : Birecursive.Aux[Option[A], Const[Option[A], ?]] =
+      : Birecursive.Aux[Option[A], Const[Option[A], *]] =
     id.idBirecursive[Option[A]]
 
   implicit val optionDelayEqual: Delay[Equal, Option] =

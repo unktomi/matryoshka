@@ -16,7 +16,6 @@
 
 package matryoshka.patterns
 
-import slamdata.Predef._
 import matryoshka._
 import matryoshka.data.Mu
 import matryoshka.example._
@@ -25,20 +24,19 @@ import matryoshka.helpers._
 import matryoshka.implicits._
 import matryoshka.scalacheck.arbitrary._
 
-import scala.Predef.implicitly
 
 import org.scalacheck._
 import org.specs2.ScalaCheck
 import org.specs2.mutable._
-import org.specs2.scalaz.{ScalazMatchers}
+import matryoshka.helpers.ScalazMatchers
 import scalaz._, Scalaz._
 import scalaz.scalacheck.ScalazProperties._
 
 trait DiffArb {
   implicit def diffArbitrary[T[_[_]], F[_]](
     implicit T: Arbitrary[T[F]], F: Delay[Arbitrary, F]):
-      Delay[Arbitrary, Diff[T, F, ?]] =
-    new Delay[Arbitrary, Diff[T, F, ?]] {
+      Delay[Arbitrary, Diff[T, F, *]] =
+    new Delay[Arbitrary, Diff[T, F, *]] {
       def apply[α](arb: Arbitrary[α]) =
         Arbitrary(Gen.oneOf(
           T.arbitrary.map(Same[T, F, α](_)),
@@ -59,7 +57,7 @@ trait DiffArb {
 class DiffLaws extends Specification with DiffArb with ScalaCheck {
   "Diff" >> {
     addFragments(properties(equal.laws[Diff[Mu, Exp, Int]]))
-    addFragments(properties(traverse.laws[Diff[Mu, Exp, ?]]))
+    addFragments(properties(traverse.laws[Diff[Mu, Exp, *]]))
   }
 }
 
@@ -68,8 +66,8 @@ class DiffSpec extends Specification with DiffArb with ScalazMatchers {
     "find non-recursive differences" in {
       NonRec[Mu[Example]]("a", 1).embed.paraMerga(NonRec[Mu[Example]]("b", 1).embed)(diff) must
       equal(
-        LocallyDifferent[Mu, Example, Mu[Diff[Mu, Example, ?]]](
-          NonRec[Mu[Diff[Mu, Example, ?]]]("a", 1),
+        LocallyDifferent[Mu, Example, Mu[Diff[Mu, Example, *]]](
+          NonRec[Mu[Diff[Mu, Example, *]]]("a", 1),
           NonRec[Unit]("b", 1)).embed)
     }
 
@@ -77,28 +75,28 @@ class DiffSpec extends Specification with DiffArb with ScalazMatchers {
       OneList(List(Empty[Mu[Example]]().embed, Empty[Mu[Example]]().embed)).embed.paraMerga(
         OneList(List(NonRec[Mu[Example]]("x", 3).embed)).embed)(diff) must
       equal(
-        Similar[Mu, Example, Mu[Diff[Mu, Example, ?]]](
+        Similar[Mu, Example, Mu[Diff[Mu, Example, *]]](
           OneList(List(
-            Different[Mu, Example, Mu[Diff[Mu, Example, ?]]](Empty[Mu[Example]]().embed, NonRec[Mu[Example]]("x", 3).embed).embed,
-            Removed[Mu, Example, Mu[Diff[Mu, Example, ?]]](Empty[Mu[Example]]().embed).embed))).embed)
+            Different[Mu, Example, Mu[Diff[Mu, Example, *]]](Empty[Mu[Example]]().embed, NonRec[Mu[Example]]("x", 3).embed).embed,
+            Removed[Mu, Example, Mu[Diff[Mu, Example, *]]](Empty[Mu[Example]]().embed).embed))).embed)
     }
 
     "create `Added` for longer list" in {
       OneList(List(NonRec[Mu[Example]]("x", 3).embed)).embed.paraMerga(
         OneList(List(Empty[Mu[Example]]().embed, Empty[Mu[Example]]().embed)).embed)(diff) must
       equal(
-        Similar[Mu, Example, Mu[Diff[Mu, Example, ?]]](OneList(List(
-          Different[Mu, Example, Mu[Diff[Mu, Example, ?]]](NonRec[Mu[Example]]("x", 3).embed, Empty[Mu[Example]]().embed).embed,
-          Added[Mu, Example, Mu[Diff[Mu, Example, ?]]](Empty[Mu[Example]]().embed).embed))).embed)
+        Similar[Mu, Example, Mu[Diff[Mu, Example, *]]](OneList(List(
+          Different[Mu, Example, Mu[Diff[Mu, Example, *]]](NonRec[Mu[Example]]("x", 3).embed, Empty[Mu[Example]]().embed).embed,
+          Added[Mu, Example, Mu[Diff[Mu, Example, *]]](Empty[Mu[Example]]().embed).embed))).embed)
     }
 
     "choose “simplest” diff" in {
       OneList(List(Empty[Mu[Example]]().embed)).embed.paraMerga(
         OneList(List(NonRec[Mu[Example]]("x", 3).embed, Empty[Mu[Example]]().embed)).embed)(diff) must
       equal(
-        Similar[Mu, Example, Mu[Diff[Mu, Example, ?]]](OneList(List(
-          Added[Mu, Example, Mu[Diff[Mu, Example, ?]]](NonRec[Mu[Example]]("x", 3).embed).embed,
-          Same[Mu, Example, Mu[Diff[Mu, Example, ?]]](Empty[Mu[Example]]().embed).embed))).embed)
+        Similar[Mu, Example, Mu[Diff[Mu, Example, *]]](OneList(List(
+          Added[Mu, Example, Mu[Diff[Mu, Example, *]]](NonRec[Mu[Example]]("x", 3).embed).embed,
+          Same[Mu, Example, Mu[Diff[Mu, Example, *]]](Empty[Mu[Example]]().embed).embed))).embed)
     }.pendingUntilFixed("can’t just walk lists from start to finish")
 
     "create `Removed` and `Added` for mixed lists" in {
@@ -107,14 +105,14 @@ class DiffSpec extends Specification with DiffArb with ScalazMatchers {
           List(NonRec[Mu[Example]]("x", 3).embed),
           List(Empty[Mu[Example]]().embed, Empty[Mu[Example]]().embed, Empty[Mu[Example]]().embed)).embed)(diff) must
       equal(
-        Similar[Mu, Example, Mu[Diff[Mu, Example, ?]]](TwoLists(
+        Similar[Mu, Example, Mu[Diff[Mu, Example, *]]](TwoLists(
           List(
-            Different[Mu, Example, Mu[Diff[Mu, Example, ?]]](Empty[Mu[Example]]().embed, NonRec[Mu[Example]]("x", 3).embed).embed,
-            Removed[Mu, Example, Mu[Diff[Mu, Example, ?]]](Empty[Mu[Example]]().embed).embed),
+            Different[Mu, Example, Mu[Diff[Mu, Example, *]]](Empty[Mu[Example]]().embed, NonRec[Mu[Example]]("x", 3).embed).embed,
+            Removed[Mu, Example, Mu[Diff[Mu, Example, *]]](Empty[Mu[Example]]().embed).embed),
           List(
-            Same[Mu, Example, Mu[Diff[Mu, Example, ?]]](Empty[Mu[Example]]().embed).embed,
-            Added[Mu, Example, Mu[Diff[Mu, Example, ?]]](Empty[Mu[Example]]().embed).embed,
-            Added[Mu, Example, Mu[Diff[Mu, Example, ?]]](Empty[Mu[Example]]().embed).embed))).embed)
+            Same[Mu, Example, Mu[Diff[Mu, Example, *]]](Empty[Mu[Example]]().embed).embed,
+            Added[Mu, Example, Mu[Diff[Mu, Example, *]]](Empty[Mu[Example]]().embed).embed,
+            Added[Mu, Example, Mu[Diff[Mu, Example, *]]](Empty[Mu[Example]]().embed).embed))).embed)
     }
   }
 
@@ -154,14 +152,17 @@ class DiffSpec extends Specification with DiffArb with ScalazMatchers {
             Empty[Mu[Example]]().embed)).embed
 
       // TODO: Eliminate this type annotation
-      ((left paraMerga right)(diff): Mu[Diff[Mu, Example, ?]]).cata(toTree).drawTree must
-        equal("""TwoLists([(),(),(),()], [(),(),()])
+      // Tree labels use the selected Show[Unit], whose rendering differs
+      // between the JVM and Scala.js Scalaz artifacts.
+      val unit = Show[Unit].shows(())
+      ((left paraMerga right)(diff): Mu[Diff[Mu, Example, *]]).cata(toTree).drawTree must
+        equal(s"""TwoLists([$unit,$unit,$unit,$unit], [$unit,$unit,$unit])
                 ||
                 |+- NonRec("foo", 3) <=/=> NonRec("bar", 3)
                 ||
-                |+- SemiRec(2, ()) <=/=> SemiRec(10, ())
+                |+- SemiRec(2, $unit) <=/=> SemiRec(10, $unit)
                 ||  |
-                ||  `- SemiRec(8, ())
+                ||  `- SemiRec(8, $unit)
                 ||     |
                 ||     `- NonRec("meh", 6) <=/=> NonRec("meh", 7)
                 ||

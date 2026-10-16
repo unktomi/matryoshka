@@ -28,16 +28,16 @@ import scalaz._, Scalaz._
   * constraints, and only require specific types at the boundaries.
   */
 package object data
-    extends CofreeInstances
-    with DisjunctionInstances
-    with EitherInstances
-    with FreeInstances
-    with IdInstances
-    with IListInstances
-    with ListInstances
-    with MaybeInstances
-    with NonEmptyListInstances
-    with OptionInstances {
+    extends matryoshka.data.CofreeInstances
+    with matryoshka.data.DisjunctionInstances
+    with matryoshka.data.EitherInstances
+    with matryoshka.data.FreeInstances
+    with matryoshka.data.IdInstances
+    with matryoshka.data.IListInstances
+    with matryoshka.data.ListInstances
+    with matryoshka.data.MaybeInstances
+    with matryoshka.data.NonEmptyListInstances
+    with matryoshka.data.OptionInstances {
 
   /** NB: Since Cofree carries the functor, the resulting algebra is a cata, not
     *     a para.
@@ -45,7 +45,7 @@ package object data
     * @group algtrans
     */
   def attributePara[T, F[_]: Functor, A]
-    (f: GAlgebra[(T, ?), F, A])
+    (f: GAlgebra[(T, *), F, A])
     (implicit T: Corecursive.Aux[T, F])
       : Algebra[F, Cofree[F, A]] =
     fa => Cofree(f(fa ∘ (x => (x.cata[T](_.lower.embed), x.head))), fa)

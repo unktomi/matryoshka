@@ -16,7 +16,8 @@
 
 package matryoshka.data
 
-import slamdata.Predef._
+import matryoshka._
+
 import matryoshka.exp.Exp
 import matryoshka.helpers._
 import matryoshka.patterns.CoEnv
@@ -31,6 +32,6 @@ class NuSpec extends Specification with AlgebraChecks {
   "Nu" >> {
     addFragments(properties(equal.laws[Nu[Exp]]))
 
-    checkFoldIsoLaws[Nu[CoEnv[Int, Exp, ?]], CoEnv[Int, Exp, ?], Free[Exp, Int]]("Nu", CoEnv.freeIso)
+    checkFoldIsoLaws[Nu[CoEnv[Int, Exp, *]], CoEnv[Int, Exp, *], Free[Exp, Int]]("Nu", CoEnv.freeIso)
   }
 }

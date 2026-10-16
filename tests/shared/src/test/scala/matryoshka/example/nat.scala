@@ -18,7 +18,6 @@ package matryoshka.example
 
 import org.specs2.mutable._
 
-import slamdata.Predef._
 import matryoshka._
 import matryoshka.data._
 import matryoshka.implicits._
@@ -48,7 +47,7 @@ object Nat {
     case Succ(n) => n + 1
   }
 
-  val factorial: GAlgebra[(Int, ?), Nat, Int] = {
+  val factorial: GAlgebra[(Int, *), Nat, Int] = {
     case Zero() => 1
     case Succ((i, n)) => (i + 1) * n
   }

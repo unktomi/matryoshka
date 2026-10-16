@@ -49,44 +49,44 @@ trait Birecursive[T] extends Recursive[T] with Corecursive[T] {
     k: DistributiveLaw[N, Base], e: Base ~> Base, ψ: GCoalgebra[N, Base, A])(
     implicit BF: Functor[Base], N: Monad[N]):
       T =
-    hylo[Yoneda[Base, ?], N[A], T](
+    hylo[Yoneda[Base, *], N[A], T](
       a.point[N])(
       fa => embed((fa ∘ (ana(_)(x => e(project(x))))).run),
-        ma => Yoneda(k(ma ∘ ψ)) ∘ (_.join))
+        ma => Yoneda[Base, N[N[A]]](k(ma ∘ ψ)) ∘ (_.join))
 
   override def para[A]
     (t: T)
-    (f: GAlgebra[(T, ?), Base, A])
+    (f: GAlgebra[(T, *), Base, A])
     (implicit BF: Functor[Base]) =
-    gcata[(T, ?), A](t)(distPara, f)
+    gcata[(T, *), A](t)(distPara, f)
 
   override def elgotPara[A]
     (t: T)
-    (f: ElgotAlgebra[(T, ?), Base, A])
+    (f: ElgotAlgebra[(T, *), Base, A])
     (implicit BF: Functor[Base]) =
-    elgotCata[(T, ?), A](t)(distPara, f)
+    elgotCata[(T, *), A](t)(distPara, f)
 
   override def paraZygo[A, B]
     (t: T)
-    (f: GAlgebra[(T, ?), Base, B], g: GAlgebra[(B, ?), Base, A])
+    (f: GAlgebra[(T, *), Base, B], g: GAlgebra[(B, *), Base, A])
     (implicit BF: Functor[Base], BU: Unzip[Base]) =
-    gcataZygo[(T, ?), A, B](t)(distPara, f, g)
+    gcataZygo[(T, *), A, B](t)(distPara, f, g)
 
   override def apo[A]
     (a: A)
-    (f: GCoalgebra[T \/ ?, Base, A])
+    (f: GCoalgebra[\/[T, *], Base, A])
     (implicit BF: Functor[Base]) =
-    gana[T \/ ?, A](a)(distApo, f)
+    gana[\/[T, *], A](a)(distApo, f)
 
   override def elgotApo[A]
     (a: A)
-    (f: ElgotCoalgebra[T \/ ?, Base, A])
+    (f: ElgotCoalgebra[\/[T, *], Base, A])
     (implicit BF: Functor[Base]) =
-    elgotAna[T \/ ?, A](a)(distApo, f)
+    elgotAna[\/[T, *], A](a)(distApo, f)
 
   def gpara[W[_]: Comonad, A](
     t: T)(
-    e: DistributiveLaw[Base, W], f: GAlgebra[EnvT[T, W, ?], Base, A])(
+    e: DistributiveLaw[Base, W], f: GAlgebra[EnvT[T, W, *], Base, A])(
     implicit BF: Functor[Base]):
       A =
     gzygo[W, A, T](t)(embed, e, f)
@@ -103,9 +103,9 @@ trait Birecursive[T] extends Recursive[T] with Corecursive[T] {
     k: DistributiveLaw[Base, W], e: Base ~> Base, f: GAlgebra[W, Base, A])(
     implicit BF: Functor[Base]):
       A =
-    hylo[Yoneda[Base, ?], T, W[A]](
+    hylo[Yoneda[Base, *], T, W[A]](
       t)(
-      fwa => k((fwa ∘ (_.cojoin)).run) ∘ f,
+      fwa => Comonad[W].map(k((fwa ∘ (_.cojoin)).run))(f),
         t => Yoneda(project(t)) ∘ (cata[T](_)(c => embed(e(c))))).copoint
 
   // TODO: This should be an enrichment on Tuple2.
@@ -128,13 +128,13 @@ trait Birecursive[T] extends Recursive[T] with Corecursive[T] {
 
   override def transPara[U, G[_]: Functor]
     (t: T)
-    (f: AlgebraicGTransform[(T, ?), U, Base, G])
+    (f: AlgebraicGTransform[(T, *), U, Base, G])
     (implicit U: Corecursive.Aux[U, G], BF: Functor[Base]) =
     transGcata(t)(distPara, f)
 
   override def transApo[U, G[_]: Functor]
     (u: U)
-    (f: CoalgebraicGTransform[T \/ ?, U, G, Base])
+    (f: CoalgebraicGTransform[\/[T, *], U, G, Base])
     (implicit U: Recursive.Aux[U, G], BF: Functor[Base])
       : T =
     transGana(u)(distApo, f)
@@ -209,7 +209,7 @@ object Birecursive {
     (implicit T: Birecursive.Aux[T, F], F: Order[F[Unit]])
       : Order[T] =
     Order.order((a, b) =>
-      T.anaM[Ordering \/ ?, (T, T)]((a, b)) {
+      T.anaM[\/[Ordering, *], (T, T)]((a, b)) {
         case (a, b) =>
           val (fa, fb) = (T.project(a), T.project(b))
           Merge.fromTraverse[F].merge(fa, fb) \/> (fa.void ?|? fb.void)
@@ -230,7 +230,7 @@ object Birecursive {
     def lambek(implicit BF: Functor[F]): F[T] =
       typeClassInstance.lambek(self)
     def gpara[W[_]: Comonad, A]
-      (e: DistributiveLaw[F, W], f: GAlgebra[EnvT[T, W, ?], F, A])
+      (e: DistributiveLaw[F, W], f: GAlgebra[EnvT[T, W, *], F, A])
       (implicit BF: Functor[F])
         : A =
       typeClassInstance.gpara[W, A](self)(e, f)

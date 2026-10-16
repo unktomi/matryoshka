@@ -22,7 +22,7 @@ import scalaz._
 
 trait DisjunctionInstances {
   implicit def disjunctionBirecursive[A, B]
-      : Birecursive.Aux[A \/ B, Const[A \/ B, ?]] =
+      : Birecursive.Aux[A \/ B, Const[A \/ B, *]] =
     id.idBirecursive[A \/ B]
 }
 

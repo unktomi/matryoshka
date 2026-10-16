@@ -16,7 +16,6 @@
 
 package matryoshka.scalacheck
 
-import slamdata.Predef._
 import matryoshka._
 import matryoshka.data._
 import matryoshka.implicits._
@@ -51,31 +50,31 @@ trait CogenInstances extends CogenInstancesʹ {
         Cogen((seed, value) => value.fold(seed.next)(a.perturb(seed, _)))
     }
 
-  implicit def coEnvCogen[F[_], A: Cogen](implicit F: Delay[Cogen, F]): Delay[Cogen, CoEnv[A, F, ?]] =
-    new Delay[Cogen, CoEnv[A, F, ?]] {
+  implicit def coEnvCogen[F[_], A: Cogen](implicit F: Delay[Cogen, F]): Delay[Cogen, CoEnv[A, F, *]] =
+    new Delay[Cogen, CoEnv[A, F, *]] {
       def apply[B](b: Cogen[B]) =
         Cogen((seed, value) => value.run.fold(Cogen[A].perturb(seed, _), F(b).perturb(seed.next, _)))
     }
 
-  implicit def envTCogen[F[_], A: Cogen](implicit F: Delay[Cogen, F]): Delay[Cogen, EnvT[A, F, ?]] =
-    new Delay[Cogen, EnvT[A, F, ?]] {
+  implicit def envTCogen[F[_], A: Cogen](implicit F: Delay[Cogen, F]): Delay[Cogen, EnvT[A, F, *]] =
+    new Delay[Cogen, EnvT[A, F, *]] {
       def apply[B](b: Cogen[B]) =
         Cogen((seed, value) => F(b).perturb(Cogen[A].perturb(seed, value.ask), value.lower))
     }
 
-  implicit def freeCogen[F[_]: Functor](implicit F: Delay[Cogen, F]): Delay[Cogen, Free[F, ?]] =
-    new Delay[Cogen, Free[F, ?]] {
+  implicit def freeCogen[F[_]: Functor](implicit F: Delay[Cogen, F]): Delay[Cogen, Free[F, *]] =
+    new Delay[Cogen, Free[F, *]] {
       def apply[A](a: Cogen[A]) = {
         implicit val aʹ: Cogen[A] = a
-        recursiveCogen[Free[F, A], CoEnv[A, F, ?]]
+        recursiveCogen[Free[F, A], CoEnv[A, F, *]]
       }
     }
 
-  implicit def cofreeCogen[F[_]: Functor](implicit F: Delay[Cogen, F]): Delay[Cogen, Cofree[F, ?]] =
-    new Delay[Cogen, Cofree[F, ?]] {
+  implicit def cofreeCogen[F[_]: Functor](implicit F: Delay[Cogen, F]): Delay[Cogen, Cofree[F, *]] =
+    new Delay[Cogen, Cofree[F, *]] {
       def apply[A](a: Cogen[A]) = {
         implicit val aʹ: Cogen[A] = a
-        recursiveCogen[Cofree[F, A], EnvT[A, F, ?]]
+        recursiveCogen[Cofree[F, A], EnvT[A, F, *]]
       }
     }
 }

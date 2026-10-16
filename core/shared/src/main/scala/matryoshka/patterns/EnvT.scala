@@ -36,18 +36,25 @@ final case class EnvT[E, W[_], A](run: (E, W[A])) { self =>
 }
 
 object EnvT extends EnvTInstances with EnvTFunctions {
-  def hmap[F[_], G[_], E, A](f: F ~> G): EnvT[E, F, ?] ~> EnvT[E, G, ?] =
-    λ[EnvT[E, F, ?] ~> EnvT[E, G, ?]](env => EnvT((env.ask, f(env.lower))))
+  def hmap[F[_], G[_], E, A](f: F ~> G): EnvT[E, F, *] ~> EnvT[E, G, *] =
+    new (EnvT[E, F, *] ~> EnvT[E, G, *]) {
+      def apply[B](env: EnvT[E, F, B]): EnvT[E, G, B] = EnvT((env.ask, f(env.lower)))
+    }
 
-  def htraverse[G[_]: Applicative, F[_], H[_], A](f: F ~> (G ∘ H)#λ): EnvT[A, F, ?] ~> (G ∘ EnvT[A, H, ?])#λ =
-    λ[EnvT[A, F, ?] ~> (G ∘ EnvT[A, H, ?])#λ](_.run.traverse(f(_)).map(EnvT(_)))
+  def htraverse[G[_]: Applicative, F[_], H[_], A](f: F ~> (G ∘ H)#λ): EnvT[A, F, *] ~> (G ∘ EnvT[A, H, *])#λ =
+    new (EnvT[A, F, *] ~> (G ∘ EnvT[A, H, *])#λ) {
+      def apply[B](env: EnvT[A, F, B]): G[EnvT[A, H, B]] =
+        Applicative[G].map(f(env.lower))(hb => EnvT((env.ask, hb)))
+    }
 
-  def lower[F[_], E]: EnvT[E, F, ?] ~> F = λ[EnvT[E, F, ?] ~> F](_.lower)
+  def lower[F[_], E]: EnvT[E, F, *] ~> F = new (EnvT[E, F, *] ~> F) {
+    def apply[A](env: EnvT[E, F, A]): F[A] = env.lower
+  }
 }
 
 sealed abstract class EnvTInstances1 {
   implicit def functor[E, W[_]](implicit W0: Functor[W]):
-      Functor[EnvT[E, W, ?]] =
+      Functor[EnvT[E, W, *]] =
     new EnvTFunctor[E, W] {
       implicit def W: Functor[W] = W0
     }
@@ -55,41 +62,41 @@ sealed abstract class EnvTInstances1 {
 
 sealed abstract class EnvTInstances0 extends EnvTInstances1 {
   implicit def cobind[E, W[_]](implicit W0: Cobind[W]):
-      Cobind[EnvT[E, W, ?]] =
+      Cobind[EnvT[E, W, *]] =
     new EnvTCobind[E, W] {
       implicit def W: Cobind[W] = W0
     }
 }
 
 sealed abstract class EnvTInstances extends EnvTInstances0 {
-  implicit def comonad[E, W[_]](implicit W0: Comonad[W]): Comonad[EnvT[E, W, ?]] =
+  implicit def comonad[E, W[_]](implicit W0: Comonad[W]): Comonad[EnvT[E, W, *]] =
     new EnvTComonad[E, W] { implicit def W: Comonad[W] = W0 }
 
-  implicit def equal[E: Equal, W[_]](implicit W: Delay[Equal, W]): Delay[Equal, EnvT[E, W, ?]] =
-    new Delay[Equal, EnvT[E, W, ?]] {
+  implicit def equal[E: Equal, W[_]](implicit W: Delay[Equal, W]): Delay[Equal, EnvT[E, W, *]] =
+    new Delay[Equal, EnvT[E, W, *]] {
       def apply[A](eq: Equal[A]) =
         Equal.equal((a, b) => a.ask ≟ b.ask && W(eq).equal(a.lower, b.lower))
     }
 
-  implicit def show[E: Show, F[_]](implicit F: Delay[Show, F]): Delay[Show, EnvT[E, F, ?]] =
-    new Delay[Show, EnvT[E, F, ?]] {
+  implicit def show[E: Show, F[_]](implicit F: Delay[Show, F]): Delay[Show, EnvT[E, F, *]] =
+    new Delay[Show, EnvT[E, F, *]] {
       def apply[A](sh: Show[A]) =
         Show.show(envt =>
           Cord("EnvT(") ++ envt.ask.show ++ Cord(", ") ++ F(sh).show(envt.lower) ++ Cord(")"))
     }
 
-  implicit def bitraverse[F[_]](implicit F0: Traverse[F]): Bitraverse[EnvT[?, F, ?]] =
+  implicit def bitraverse[F[_]](implicit F0: Traverse[F]): Bitraverse[EnvT[*, F, *]] =
     new EnvTBitraverse[F] { implicit def F: Traverse[F] = F0 }
 
-  implicit def traverse[E, F[_]: Traverse]: Traverse[EnvT[E, F, ?]] =
+  implicit def traverse[E, F[_]: Traverse]: Traverse[EnvT[E, F, *]] =
     bitraverse[F].rightTraverse
 }
 
 trait EnvTFunctions {
   def envT[E, W[_], A](v: (E, W[A])): EnvT[E, W, A] = EnvT(v)
 
-  def cofreeIso[E, W[_]]: AlgebraIso[EnvT[E, W, ?], Cofree[W, E]] =
-    AlgebraIso[EnvT[E, W, ?], Cofree[W, E]](
+  def cofreeIso[E, W[_]]: AlgebraIso[EnvT[E, W, *], Cofree[W, E]] =
+    AlgebraIso[EnvT[E, W, *], Cofree[W, E]](
       et => Cofree(et.ask, et.lower))(
       cof => EnvT((cof.head, cof.tail)))
 }
@@ -98,14 +105,14 @@ trait EnvTFunctions {
 // Type class implementation traits
 //
 
-private trait EnvTFunctor[E, W[_]] extends Functor[EnvT[E, W, ?]] {
+private trait EnvTFunctor[E, W[_]] extends Functor[EnvT[E, W, *]] {
   implicit def W: Functor[W]
 
   override final def map[A, B](fa: EnvT[E, W, A])(f: A => B) = fa map f
 }
 
 private trait EnvTBitraverse[F[_]]
-    extends Bitraverse[EnvT[?, F, ?]]
+    extends Bitraverse[EnvT[*, F, *]]
     // with EnvTBiFunctor[F]
     // with EnvTBifoldable[F]
 {
@@ -113,11 +120,11 @@ private trait EnvTBitraverse[F[_]]
 
   override final def bitraverseImpl[G[_]: Applicative, A, B, C, D]
     (fab: EnvT[A, F, B])
-    (f: A ⇒ G[C], g: B ⇒ G[D]) =
+    (f: A => G[C], g: B => G[D]) =
     fab.run.bitraverse(f, _.traverse(g)) ∘ (EnvT(_))
 }
 
-private trait EnvTCobind[E, W[_]] extends Cobind[EnvT[E, W, ?]] with EnvTFunctor[E, W] {
+private trait EnvTCobind[E, W[_]] extends Cobind[EnvT[E, W, *]] with EnvTFunctor[E, W] {
   implicit def W: Cobind[W]
 
   override final def cojoin[A](fa: EnvT[E, W, A]): EnvT[E, W, EnvT[E, W, A]] =
@@ -127,7 +134,7 @@ private trait EnvTCobind[E, W[_]] extends Cobind[EnvT[E, W, ?]] with EnvTFunctor
     cojoin(fa).map(f)
 }
 
-private trait EnvTComonad[E, W[_]] extends Comonad[EnvT[E, W, ?]] with EnvTCobind[E, W] {
+private trait EnvTComonad[E, W[_]] extends Comonad[EnvT[E, W, *]] with EnvTCobind[E, W] {
   implicit def W: Comonad[W]
 
   def copoint[A](p: EnvT[E, W, A]): A = p.lower.copoint

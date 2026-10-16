@@ -23,28 +23,28 @@ import scalaz._, Scalaz._
 
 trait CofreeInstances {
   implicit def cofreeBirecursive[F[_], A]
-      : Birecursive.Aux[Cofree[F, A], EnvT[A, F, ?]] =
+      : Birecursive.Aux[Cofree[F, A], EnvT[A, F, *]] =
     Birecursive.fromAlgebraIso(
       t => Cofree(t.ask, t.lower),
       t => EnvT((t.head, t.tail)))
 
   implicit def cofreeEqual[F[_]: Traverse](implicit F: Delay[Equal, F]):
-      Delay[Equal, Cofree[F, ?]] =
-    new Delay[Equal, Cofree[F, ?]] {
+      Delay[Equal, Cofree[F, *]] =
+    new Delay[Equal, Cofree[F, *]] {
       def apply[A](eq: Equal[A]) = {
-        implicit val envtʹ: Delay[Equal, EnvT[A, F, ?]] = EnvT.equal(eq, F)
+        implicit val envtʹ: Delay[Equal, EnvT[A, F, *]] = EnvT.equal(eq, F)
 
-        Birecursive.equal[Cofree[F, A], EnvT[A, F, ?]]
+        Birecursive.equal[Cofree[F, A], EnvT[A, F, *]]
       }
     }
 
   implicit def cofreeShow[F[_]: Functor](implicit F: Delay[Show, F]):
-      Delay[Show, Cofree[F, ?]] =
-    new Delay[Show, Cofree[F, ?]] {
+      Delay[Show, Cofree[F, *]] =
+    new Delay[Show, Cofree[F, *]] {
       def apply[A](s: Show[A]) = {
-        implicit val envtʹ: Delay[Show, EnvT[A, F, ?]] = EnvT.show(s, F)
+        implicit val envtʹ: Delay[Show, EnvT[A, F, *]] = EnvT.show(s, F)
 
-        Recursive.show[Cofree[F, A], EnvT[A, F, ?]]
+        Recursive.show[Cofree[F, A], EnvT[A, F, *]]
       }
     }
 }

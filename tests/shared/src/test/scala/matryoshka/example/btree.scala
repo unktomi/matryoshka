@@ -18,7 +18,6 @@ package matryoshka.example
 
 import org.specs2.mutable._
 
-import slamdata.Predef._
 import matryoshka._
 import matryoshka.implicits._
 import scalaz._
@@ -41,11 +40,11 @@ object BTree {
 
   def merge(l: List[Int], r: List[Int]): List[Int] =
     (l, r) match {
-	  case(l, Nil) => l
-	  case(Nil, r) => r
-	  case(lh :: ls, rh :: rs) =>
-	    if (lh < rh) lh::merge(ls, r)
-            else rh :: merge(l, rs)
+      case(l, Nil) => l
+      case(Nil, r) => r
+      case(lh :: ls, rh :: rs) =>
+        if (lh < rh) lh::merge(ls, r)
+        else rh :: merge(l, rs)
     }
 
   //builds a balanced binary tree

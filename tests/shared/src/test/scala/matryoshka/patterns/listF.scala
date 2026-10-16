@@ -16,7 +16,6 @@
 
 package matryoshka.patterns
 
-import slamdata.Predef._
 import matryoshka._
 import matryoshka.helpers._
 import matryoshka.scalacheck.arbitrary._

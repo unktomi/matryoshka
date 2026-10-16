@@ -16,14 +16,12 @@
 
 package matryoshka
 
-import slamdata.Predef._
 
-import simulacrum._
 import scalaz._, Scalaz._
 
 /** Like `Zip`, but it can fail to merge, so it’s much more general.
   */
-@typeclass trait Merge[F[_]] {
+trait Merge[F[_]] {
   // TODO[simulacrum#57]: `fa` should be lazy
   def merge[A, B](fa: F[A], fb: => F[B]): Option[F[(A, B)]]
 
@@ -37,6 +35,26 @@ import scalaz._, Scalaz._
 
 @SuppressWarnings(Array("org.wartremover.warts.PublicInference"))
 object Merge {
+  trait Ops[F[_], A] {
+    def self: F[A]
+    def typeClassInstance: Merge[F]
+    def merge[B](fb: => F[B]): Option[F[(A, B)]] = typeClassInstance.merge(self, fb)
+    def mergeWith[B, C, D](fb: => F[B])(g: (A, B) => D)(implicit F: Functor[F]): Option[F[D]] =
+      typeClassInstance.mergeWith[A, B, C, D](self, fb)(g)
+  }
+  trait AllOps[F[_], A] extends Ops[F, A]
+  trait ToMergeOps {
+    implicit def toMergeOps[F[_], A](fa: F[A])(implicit F: Merge[F]): AllOps[F, A] =
+      new AllOps[F, A] {
+        val self = fa
+        val typeClassInstance = F
+      }
+  }
+  object ops extends ToMergeOps
+  object nonInheritedOps extends ToMergeOps
+
+  def apply[F[_]](implicit instance: Merge[F]): Merge[F] = instance
+
   implicit def fromTraverse[F[_]: Traverse](implicit E: Equal[F[Unit]]):
       Merge[F] =
     new Merge[F] {

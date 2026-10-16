@@ -16,7 +16,6 @@
 
 package matryoshka.patterns
 
-import slamdata.Predef._
 import matryoshka._
 import matryoshka.data.cofree._
 import matryoshka.exp._
@@ -31,7 +30,7 @@ import scalaz.scalacheck.ScalazProperties._
 class EnvTSpec extends Specification with AlgebraChecks {
   "EnvT" >> {
     addFragments(properties(equal.laws[EnvT[String, Exp, Int]]))
-    addFragments(properties(comonad.laws[EnvT[String, NonEmptyList, ?]]))
+    addFragments(properties(comonad.laws[EnvT[String, NonEmptyList, *]]))
 
     checkAlgebraIsoLaws("EnvT ⇔ Cofree", EnvT.cofreeIso[Int, Exp])
   }

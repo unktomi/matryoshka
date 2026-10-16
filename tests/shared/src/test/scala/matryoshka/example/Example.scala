@@ -16,7 +16,6 @@
 
 package matryoshka.example
 
-import slamdata.Predef._
 import matryoshka._
 import matryoshka.helpers._
 import matryoshka.implicits._
@@ -53,8 +52,8 @@ object Example {
 
   implicit val equal: Delay[Equal, Example] = new Delay[Equal, Example] {
     def apply[α](eq: Equal[α]) = Equal.equal((a, b) => {
-      implicit val ieq = eq
-        (a, b) match {
+      implicit val ieq: Equal[α] = eq
+      (a, b) match {
         case (Empty(),          Empty())          => true
         case (NonRec(s1, i1),   NonRec(s2, i2))   => s1 ≟ s2 && i1 ≟ i2
         case (SemiRec(i1, a1),  SemiRec(i2, a2))  =>
@@ -70,7 +69,7 @@ object Example {
 
   implicit val show: Delay[Show, Example] = new Delay[Show, Example] {
     def apply[α](s: Show[α]) = {
-      implicit val is = s
+      implicit val is: Show[α] = s
       Show.show {
         case Empty()          => Cord("Empty()")
         case NonRec(s2, i2)   =>
@@ -95,9 +94,9 @@ object Example {
         case (l @ SemiRec(_, _),  r @ SemiRec(_, _))  => localDiff(l, r).some
         case (l @ MultiRec(_, _), r @ MultiRec(_, _)) => localDiff(l, r).some
         case (OneList(l),         OneList(r))         =>
-          Similar[T, Example, T[Diff[T, Example, ?]]](OneList[DiffT[T, Example]](diffTraverse(l, r))).embed.some
+          Similar[T, Example, T[Diff[T, Example, *]]](OneList[DiffT[T, Example]](diffTraverse(l, r))).embed.some
         case (TwoLists(l1, l2),   TwoLists(r1, r2))   =>
-          Similar[T, Example, T[Diff[T, Example, ?]]](TwoLists[DiffT[T, Example]](diffTraverse(l1, r1), diffTraverse(l2, r2))).embed.some
+          Similar[T, Example, T[Diff[T, Example, *]]](TwoLists[DiffT[T, Example]](diffTraverse(l1, r1), diffTraverse(l2, r2))).embed.some
         case (_,                  _)                  => None
       }
   }

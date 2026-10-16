@@ -18,7 +18,6 @@ package matryoshka.example
 
 import org.specs2.mutable._
 
-import slamdata.Predef._
 import matryoshka._
 import matryoshka.data._
 import matryoshka.implicits._
@@ -70,7 +69,7 @@ object IntList {
     }
   }
 
-  def mapHead(f: Int => Int): GCoalgebra[Fix[IntList] \/ ?, IntList, Fix[IntList]] = {
+  def mapHead(f: Int => Int): GCoalgebra[\/[Fix[IntList], *], IntList, Fix[IntList]] = {
     case Fix(IntNil()) => IntNil()
     case Fix(IntCons(h, t)) => IntCons(f(h), \/.left(t))
   }

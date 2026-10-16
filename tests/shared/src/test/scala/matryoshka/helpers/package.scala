@@ -16,7 +16,8 @@
 
 package matryoshka
 
-import slamdata.Predef._
+import matryoshka._
+
 
 import matryoshka.exp._
 
@@ -64,7 +65,7 @@ package object helpers {
       case _                                           => ???
     }
 
-  def elgotStrings: ElgotAlgebra[(Int, ?), Exp, String] = {
+  def elgotStrings: ElgotAlgebra[(Int, *), Exp, String] = {
     case (x, Num(xs)) if x == xs => x.toString
     case (x, Mul(xs, ys)) => "(" + xs + " * " + ys + " = " + x + ")"
     case _ => ???

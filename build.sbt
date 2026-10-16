@@ -1,125 +1,78 @@
-import scoverage._
-import sbt._, Keys._
 import sbtcrossproject.CrossPlugin.autoImport.crossProject
 
-lazy val scala2_12 = "2.12.8"
-lazy val scala2_11 = "2.11.12"
+ThisBuild / scalaVersion := "3.3.7"
+ThisBuild / crossScalaVersions := Seq("3.3.7")
+ThisBuild / organization := "com.slamdata"
+ThisBuild / homepage := Some(url("https://github.com/unktomi/matryoshka"))
+ThisBuild / licenses := Seq("Apache-2.0" -> url("https://www.apache.org/licenses/LICENSE-2.0"))
 
-lazy val monocleVersion = "1.5.0"
-lazy val scalazVersion  = "7.2.27"
+val scalazVersion = "7.2.36"
+val monocleVersion = "1.6.3"
+val specs2Version = "4.23.0"
 
-lazy val supportedScalaVersions = List(scala2_12, scala2_11)
-
-ThisBuild / scalaVersion := scala2_12
-
-ThisBuild / crossScalaVersions := supportedScalaVersions
-
-lazy val standardSettings = commonBuildSettings ++ Seq(
-  Compile / logBuffered := false,
-  Test / logBuffered := false,
-  updateOptions := updateOptions.value.withCachedResolution(true),
-  exportJars := true,
-  organization := "com.slamdata",
-  ScoverageKeys.coverageHighlighting := true,
-  Compile / doc / scalacOptions ++= Seq("-groups", "-implicits"),
-  Compile / compile / wartremoverWarnings -= Wart.ImplicitParameter, // see wartremover/wartremover#350 & #351
+lazy val standardSettings = Seq(
+  scalacOptions ++= Seq("-deprecation", "-feature", "-unchecked", "-Ykind-projector", "-language:implicitConversions"),
   libraryDependencies ++= Seq(
-    "com.slamdata"               %%  "slamdata-predef" % "0.0.7",
-    "com.github.julien-truffaut" %%% "monocle-core"    % monocleVersion % "compile, test",
-    "org.scalaz"                 %%% "scalaz-core"     % scalazVersion  % "compile, test",
-    "com.github.mpilquist"       %%% "simulacrum"      % "0.15.0"       % "compile, test"))
-
-lazy val publishSettings = commonPublishSettings ++ Seq(
-  organizationName := "SlamData Inc.",
-  organizationHomepage := Some(url("http://slamdata.com")),
-  homepage := Some(url("https://github.com/slamdata/matryoshka")),
-  scmInfo := Some(
-    ScmInfo(
-      url("https://github.com/slamdata/matryoshka"),
-      "scm:git@github.com:slamdata/matryoshka.git")))
-
-lazy val root = project.in(file("."))
-  .settings(name := "matryoshka")
-  .settings(standardSettings ++ noPublishSettings: _*)
-  .settings(
-    console := (console in replJVM).value,
-    crossScalaVersions := Nil,
-    releaseCrossBuild := false
-  )
-  .aggregate(
-    coreJS,  scalacheckJS,  testsJS,
-    coreJVM, scalacheckJVM, testsJVM,
-    docs)
-  .enablePlugins(AutomateHeaderPlugin)
-
-lazy val core = crossProject(JVMPlatform, JSPlatform).in(file("core"))
-  .settings(name := "matryoshka-core")
-  .settings(standardSettings ++ publishSettings: _*)
-  .enablePlugins(AutomateHeaderPlugin)
-
-lazy val scalacheck = crossProject(JVMPlatform, JSPlatform)
-  .dependsOn(core)
-  .settings(name := "matryoshka-scalacheck")
-  .settings(standardSettings ++ publishSettings: _*)
-  .settings(libraryDependencies ++= Seq(
-    // NB: Needs a version of Scalacheck with rickynils/scalacheck#301.
-    "org.scalacheck" %% "scalacheck"                % "1.14.0-861f58e-SNAPSHOT",
-    "org.scalaz"     %% "scalaz-scalacheck-binding" % (scalazVersion + "-scalacheck-1.14")))
-  .enablePlugins(AutomateHeaderPlugin)
-
-lazy val tests = crossProject(JVMPlatform, JSPlatform)
-  .settings(name := "matryoshka-tests")
-  .dependsOn(core, scalacheck)
-  .settings(standardSettings ++ noPublishSettings: _*)
-  .settings(libraryDependencies ++= Seq(
-    "com.github.julien-truffaut" %% "monocle-law"   % monocleVersion % Test,
-    "org.typelevel"              %% "scalaz-specs2" % "0.5.2"        % Test,
-    "org.specs2"                 %% "specs2-core"   % "4.3.5"        % Test))
-  .enablePlugins(AutomateHeaderPlugin)
-
-lazy val docs = project
-  .settings(name := "matryoshka-docs")
-  .settings(standardSettings ++ noPublishSettings: _*)
-  .dependsOn(coreJVM)
-  .enablePlugins(MdocPlugin, MicrositesPlugin)
-  .settings(
-    //Compile / scalacOptions --= List("-Yno-imports", "-Ywarn-unused-import"),
-    Compile / scalacOptions -= "-Yno-imports",
-    Compile / scalacOptions -= "-Ywarn-unused-import",
-    mdocIn := file("docs/src/main/mdoc/"),
-    mdocVariables := Map(
-      "VERSION" -> version.value
-    )
-  )
-  .settings(
-    micrositeName             := "Matryoshka",
-    micrositeDescription      := "Generalized folds, unfolds, and traversals for fixed point data structures in Scala.",
-    micrositeAuthor           := "SlamData",
-    micrositeGithubOwner      := "slamdata",
-    micrositeGithubRepo       := "matryoshka",
-    micrositeBaseUrl          := "/matryoshka",
-    micrositeDocumentationUrl := "/matryoshka/docs/01-Getting-Started.html",
-    micrositeHighlightTheme   := "color-brewer")
-
-/** A project just for the console.
-  * Applies only the settings necessary for that purpose.
-  */
-lazy val repl = crossProject(JVMPlatform, JSPlatform) dependsOn (tests % "compile->test") settings standardSettings settings (
-  console := (console in Test).value,
-  scalacOptions --= Seq("-Yno-imports", "-Ywarn-unused-import"),
-  initialCommands in console += """
-    |import matryoshka._
-    |import matryoshka.data._
-    |import matryoshka.implicits._
-    |import matryoshka.patterns._
-    |import scalaz._, Scalaz._
-  """.stripMargin.trim
+    ("org.scalaz" %%% "scalaz-core" % scalazVersion).cross(CrossVersion.for3Use2_13),
+    // Keep Monocle and Scalaz on the same Scala 2.13 ABI via Scala 3 interoperability.
+    // Their Scala 2/3 idInstance intersection return types erase differently.
+    ("com.github.julien-truffaut" %%% "monocle-core" % monocleVersion)
+      .cross(CrossVersion.for3Use2_13).excludeAll(ExclusionRule("org.scalaz"))),
+  Test / logBuffered := false
 )
 
-lazy val replJVM = repl.jvm
-lazy val coreJS  = core.js
+lazy val root = project.in(file("."))
+  .settings(name := "matryoshka", publish / skip := true)
+  .aggregate(coreJVM, coreJS, scalacheckJVM, scalacheckJS, testsJVM, testsJS)
+
+lazy val core = crossProject(JVMPlatform, JSPlatform).in(file("core"))
+  .settings(standardSettings)
+  .settings(name := "matryoshka-core")
+
+lazy val scalacheck = crossProject(JVMPlatform, JSPlatform).in(file("scalacheck"))
+  .dependsOn(core)
+  .settings(standardSettings)
+  .settings(
+    name := "matryoshka-scalacheck",
+    libraryDependencies ++= Seq(
+      "org.scalacheck" %%% "scalacheck" % "1.18.1",
+      ("org.scalaz" %%% "scalaz-scalacheck-binding" % (scalazVersion + "-scalacheck-1.15"))
+        .cross(CrossVersion.for3Use2_13).excludeAll(ExclusionRule("org.scalacheck"))))
+
+lazy val tests = crossProject(JVMPlatform, JSPlatform).in(file("tests"))
+  .dependsOn(core, scalacheck)
+  .settings(standardSettings)
+  .settings(
+    name := "matryoshka-tests",
+    publish / skip := true,
+    libraryDependencies ++= Seq(
+      ("com.github.julien-truffaut" %%% "monocle-law" % monocleVersion % Test)
+        .cross(CrossVersion.for3Use2_13)
+        .excludeAll(ExclusionRule("org.scalaz"), ExclusionRule("org.scalacheck")),
+      ("org.typelevel" %%% "discipline-specs2" % "1.5.0" % Test)
+        .excludeAll(ExclusionRule("org.typelevel", "discipline-core_3"), ExclusionRule("org.typelevel", "discipline-core_sjs1_3")),
+      // Monocle's Scala 2.13 law classes call the Scala 2 trait initializer.
+      ("org.typelevel" %%% "discipline-core" % "1.7.0" % Test).cross(CrossVersion.for3Use2_13)
+        .excludeAll(ExclusionRule("org.scalacheck")),
+      "org.specs2" %%% "specs2-scalacheck" % specs2Version % Test,
+      "org.specs2" %%% "specs2-core" % specs2Version % Test))
+
+lazy val docs = project.in(file("docs"))
+  .dependsOn(coreJVM)
+  .enablePlugins(MdocPlugin)
+  .settings(standardSettings)
+  .settings(publish / skip := true, mdocIn := file("docs/src/main/mdoc"), mdocVariables := Map("VERSION" -> version.value))
+
 lazy val coreJVM = core.jvm
-lazy val scalacheckJS  = scalacheck.js
+lazy val coreJS = core.js
 lazy val scalacheckJVM = scalacheck.jvm
-lazy val testsJS  = tests.js
-lazy val testsJVM = tests.jvm
+lazy val scalacheckJS = scalacheck.js
+// The inherited McCarthy-91 example constructs its first Partial eagerly.
+// Give its documented, stack-dependent lower-bound test the same explicit
+// stack budget on both runtimes; this is not a stack-safety test.
+lazy val testsJVM = tests.jvm.settings(
+  Test / fork := true,
+  Test / javaOptions += "-Xss4m")
+lazy val testsJS = tests.js.settings(
+  Test / jsEnv := new org.scalajs.jsenv.nodejs.NodeJSEnv(
+    org.scalajs.jsenv.nodejs.NodeJSEnv.Config().withArgs(List("--stack-size=4096"))))

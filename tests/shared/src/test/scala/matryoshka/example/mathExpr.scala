@@ -18,7 +18,6 @@ package matryoshka.example
 
 import org.specs2.mutable._
 
-import slamdata.Predef._
 import matryoshka._
 import matryoshka.data._
 import matryoshka.implicits._
@@ -88,7 +87,7 @@ object MathExprF {
     case ExpF(x) => s"e($x)"
   }
 
-  def diffGAlgebra: GAlgebra[(Double, ?), MathExprF, Double] = {
+  def diffGAlgebra: GAlgebra[(Double, *), MathExprF, Double] = {
     case VarF() => 1
     case ZeroF() => 0
     case OneF() => 0

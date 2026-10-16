@@ -16,7 +16,6 @@
 
 package matryoshka.exp
 
-import slamdata.Predef._
 import matryoshka._
 import matryoshka.implicits._
 
@@ -33,7 +32,7 @@ case class Apply[A](func: A, arg: A) extends Exp[A]
 case class Let[A](name: Symbol, value: A, inBody: A) extends Exp[A]
 
 object Exp {
-  implicit val arbSymbol = Arbitrary(Arbitrary.arbitrary[String].map(Symbol(_)))
+  implicit val arbSymbol: Arbitrary[Symbol] = Arbitrary(Arbitrary.arbitrary[String].map(Symbol(_)))
 
   implicit val arbitrary: Delay[Arbitrary, Exp] = new Delay[Arbitrary, Exp] {
     def apply[α](arb: Arbitrary[α]): Arbitrary[Exp[α]] =
@@ -104,7 +103,7 @@ object Exp {
       }
   }
 
-  implicit val unzip = new Unzip[Exp] {
+  implicit val unzip: Unzip[Exp] = new Unzip[Exp] {
     def unzip[A, B](f: Exp[(A, B)]) = (f.map(_._1), f.map(_._2))
   }
 }

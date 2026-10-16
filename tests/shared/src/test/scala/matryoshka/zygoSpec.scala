@@ -16,7 +16,8 @@
 
 package matryoshka
 
-import slamdata.Predef._
+import matryoshka._
+
 import matryoshka.data._
 import matryoshka.exp._
 import matryoshka.helpers._
@@ -26,7 +27,7 @@ import matryoshka.runners._
 import org.scalacheck._, Prop._
 import org.specs2.ScalaCheck
 import org.specs2.mutable._
-import org.specs2.scalaz.ScalazMatchers
+import matryoshka.helpers.ScalazMatchers
 import scalaz._, Scalaz._
 
 class ZygoSpecs extends Specification with ScalaCheck with ScalazMatchers {
@@ -47,7 +48,7 @@ class ZygoSpecs extends Specification with ScalaCheck with ScalazMatchers {
           new RecRunner[Exp, String] {
             def run[T](implicit T: Recursive.Aux[T, Exp]) =
               _.zygo(eval, strings) must
-            equal("0 (0), 0 (0) (0), 2 (2), 5 (5) (10)")
+                equal("0 (0), 0 (0) (0), 2 (2), 5 (5) (10)")
           })
       }
     }
@@ -57,8 +58,8 @@ class ZygoSpecs extends Specification with ScalaCheck with ScalazMatchers {
         val factors = i.ana[Fix[Exp]](extractFactors)
 
         val a = factors.zygo(eval, strings)
-        val b = factors.zygoM[String, Int, Int \/ ?](
-          eval.generalizeM[Int \/ ?], strings(_).right)
+        val b = factors.zygoM[String, Int, \/[Int, *]](
+          eval.generalizeM[\/[Int, *]], strings(_).right)
 
         a.right ?= b
       }
@@ -70,8 +71,8 @@ class ZygoSpecs extends Specification with ScalaCheck with ScalazMatchers {
           mul(mul(num(0), num(0)), mul(num(2), num(5))),
           new RecRunner[Exp, Int \/ String] {
             def run[T](implicit T: Recursive.Aux[T, Exp]) =
-              _.elgotZygoM[String, Int, Int \/ ?](
-                eval.generalizeM[Int \/ ?],
+              _.elgotZygoM[String, Int, \/[Int, *]](
+                eval.generalizeM[\/[Int, *]],
                 elgotStrings(_).right
               ) must equal("((0 * 0 = 0) * (2 * 5 = 10) = 0)".right)
           })
@@ -83,8 +84,8 @@ class ZygoSpecs extends Specification with ScalaCheck with ScalazMatchers {
         val factors = i.ana[Fix[Exp]](extractFactors2)
 
         val a = factors.elgotZygo(eval, elgotStrings)
-        val b = factors.elgotZygoM[String, Int, Int \/ ?](
-          eval.generalizeM[Int \/ ?], elgotStrings(_).right)
+        val b = factors.elgotZygoM[String, Int, \/[Int, *]](
+          eval.generalizeM[\/[Int, *]], elgotStrings(_).right)
 
         a.right ?= b
       }

@@ -16,8 +16,8 @@
 
 package matryoshka.instances.fixedpoint
 
-import slamdata.Predef._
 import matryoshka._
+import matryoshka.instances.fixedpoint._
 import matryoshka.data.list._
 import matryoshka.implicits._
 import matryoshka.patterns._
@@ -25,7 +25,7 @@ import matryoshka.scalacheck.arbitrary._
 
 import org.specs2.ScalaCheck
 import org.specs2.mutable._
-import org.specs2.scalaz.ScalazMatchers
+import matryoshka.helpers.ScalazMatchers
 import scalaz._, Scalaz._
 import scalaz.scalacheck.{ScalazProperties => Props}
 

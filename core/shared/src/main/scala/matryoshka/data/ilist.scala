@@ -22,10 +22,10 @@ import matryoshka.patterns._
 import scalaz._
 
 trait IListInstances {
-  implicit def ilistBirecursive[A]: Birecursive.Aux[IList[A], ListF[A, ?]] =
+  implicit def ilistBirecursive[A]: Birecursive.Aux[IList[A], ListF[A, *]] =
     Birecursive.fromAlgebraIso({
       case ConsF(h, t) => ICons(h, t)
-      case NilF()      => INil[A]
+      case NilF()      => INil[A]()
     }, {
       case ICons(h, t) => ConsF(h, t)
       case INil()      => NilF[A, IList[A]]()

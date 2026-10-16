@@ -22,7 +22,7 @@ import scalaz._
 
 trait MaybeInstances {
   implicit def maybeBirecursive[A]
-      : Birecursive.Aux[Maybe[A], Const[Maybe[A], ?]] =
+      : Birecursive.Aux[Maybe[A], Const[Maybe[A], *]] =
     id.idBirecursive[Maybe[A]]
 }
 

@@ -66,13 +66,13 @@ package object implicits
       U.transGana(self)(k, f)
 
     def transApo[U, G[_]: Functor]
-      (f: CoalgebraicGTransform[(U \/ ?), T, F, G])
+      (f: CoalgebraicGTransform[(\/[U, *]), T, F, G])
       (implicit U: Corecursive.Aux[U, G], BF: Functor[F])
         : U =
       U.transApo(self)(f)
 
     def transFutu[U, G[_]: Functor]
-      (f: CoalgebraicGTransform[Free[G, ?], T, F, G])
+      (f: CoalgebraicGTransform[Free[G, *], T, F, G])
       (implicit U: Corecursive.Aux[U, G], BF: Functor[F])
         : U =
       U.transFutu(self)(f)
